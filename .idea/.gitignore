@@ -1,3 +1,6 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+# Per-developer / per-run IDE state — not shared config
+/deploymentTargetSelector.xml
+/gradle.xml
