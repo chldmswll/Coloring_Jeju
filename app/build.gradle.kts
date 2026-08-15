@@ -14,6 +14,9 @@ val properties = Properties().apply {
     load(project.rootProject.file("local.properties").inputStream())
 }
 
+val debugStoreFile = properties.getProperty("debug.store.file")
+    ?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "com.example.coloringjeju"
     compileSdk {
@@ -32,8 +35,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        debugStoreFile?.let { storeFilePath ->
+            getByName("debug") {
+                storeFile = file(storeFilePath)
+                storePassword = properties.getProperty("debug.store.password")
+                keyAlias = properties.getProperty("debug.key.alias")
+                keyPassword = properties.getProperty("debug.key.password")
+            }
+        }
+    }
+
     buildTypes {
         debug {
+            debugStoreFile?.let {
+                signingConfig = signingConfigs.getByName("debug")
+            }
+
             buildConfigField(
                 "String",
                 "BASE_URL",
