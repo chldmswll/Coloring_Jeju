@@ -7,10 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.coloringjeju.ui.showcase.DesignSystemShowcaseScreen
 import com.example.coloringjeju.ui.theme.ColoringJejuTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,28 +20,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             ColoringJejuTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    DesignSystemShowcaseScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
     }
 }
 
+@Preview(showBackground = true, heightDp = 1400)
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
+private fun DesignSystemShowcasePreview() {
     ColoringJejuTheme {
-        Greeting("Android")
+        DesignSystemShowcaseScreen()
     }
 }
