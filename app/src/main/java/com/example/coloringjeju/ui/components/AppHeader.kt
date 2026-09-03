@@ -13,8 +13,8 @@ import androidx.compose.ui.unit.dp
 import com.example.coloringjeju.ui.theme.ColoringTheme
 
 /**
- * `.app-header` — screen title bar with optional back action and subtitle
- * (e.g. "위치 인증" / "천지연폭포").
+ * `.app-header` — screen title bar with optional back action, subtitle
+ * (e.g. "위치 인증" / "천지연폭포"), and an optional trailing action (e.g. "인증하기").
  */
 @Composable
 fun AppHeader(
@@ -22,6 +22,7 @@ fun AppHeader(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val colors = ColoringTheme.colors
     Row(
@@ -34,7 +35,7 @@ fun AppHeader(
             }
             Spacer(Modifier.width(10.dp))
         }
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(title, style = ColoringTheme.typography.title, color = colors.textPrimary)
             if (subtitle != null) {
                 Text(
@@ -44,6 +45,10 @@ fun AppHeader(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+        }
+        if (trailing != null) {
+            Spacer(Modifier.width(10.dp))
+            trailing()
         }
     }
 }

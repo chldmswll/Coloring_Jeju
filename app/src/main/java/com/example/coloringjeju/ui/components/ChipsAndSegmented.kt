@@ -5,9 +5,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -92,7 +94,11 @@ fun FilterChip(
     )
 }
 
-/** Convenience row of [FilterChip]s for a single-select filter list, mirroring the style guide's `#chips` demo. */
+/**
+ * Convenience row of [FilterChip]s for a single-select filter list, mirroring the style guide's
+ * `#chips` demo. Scrolls horizontally so it degrades gracefully once there are more options than
+ * fit one screen width (e.g. TourAPI's category set).
+ */
 @Composable
 fun <T> FilterChipRow(
     options: List<T>,
@@ -101,7 +107,10 @@ fun <T> FilterChipRow(
     label: (T) -> String,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         options.forEach { option ->
             FilterChip(
                 text = label(option),

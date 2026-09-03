@@ -2,6 +2,7 @@ package com.example.coloringjeju.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,8 +19,14 @@ import androidx.compose.ui.unit.dp
 import com.example.coloringjeju.ui.theme.ColoringTheme
 
 /**
- * `.stamp-card` — a visited-place / mission row with a check indicator. Set [isDone] once the
- * mission (e.g. a location check-in) is verified.
+ * `.stamp-card` — a visited-place / mission row with a check indicator.
+ *
+ * [isDone] and [isSelected] are deliberately separate, matching the style guide's color rule
+ * (green = verified/complete, yellow = currently selected): [isDone] marks the place as already
+ * verified (mint card, green check) — permanent, set from data. [isSelected] marks it as picked
+ * for the next 인증하기 action (yellow ring) — transient, driven by the list's own selection state.
+ * A place can't be both; [isDone] wins if somehow both are true. Pass [onClick] to let the row
+ * itself be tapped (e.g. to toggle that selection).
  */
 @Composable
 fun StampCard(
@@ -27,15 +34,23 @@ fun StampCard(
     subtitle: String,
     isDone: Boolean,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    onClick: (() -> Unit)? = null,
     icon: @Composable () -> Unit,
 ) {
     val colors = ColoringTheme.colors
+    val borderColor = when {
+        isDone -> colors.primary
+        isSelected -> colors.yellow
+        else -> colors.border
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(ColoringTheme.shapes.md)
             .background(if (isDone) colors.mint else colors.white)
-            .border(1.5.dp, if (isDone) colors.primary else colors.border, ColoringTheme.shapes.md)
+            .border(if (isDone || isSelected) 2.dp else 1.5.dp, borderColor, ColoringTheme.shapes.md)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -63,28 +78,32 @@ fun StampCard(
             )
         }
 
-        StampCheck(checked = isDone)
+        StampCheck(isDone = isDone, isSelected = isSelected)
     }
 }
 
 @Composable
-private fun StampCheck(checked: Boolean) {
+private fun StampCheck(isDone: Boolean, isSelected: Boolean) {
     val colors = ColoringTheme.colors
     Box(
         modifier = Modifier
             .size(26.dp)
             .clip(CircleShape)
             .then(
-                if (checked) {
-                    Modifier.background(colors.primary)
-                } else {
-                    Modifier.border(1.5.dp, colors.border, CircleShape)
+                when {
+                    isDone -> Modifier.background(colors.primary)
+                    isSelected -> Modifier.background(colors.yellow)
+                    else -> Modifier.border(1.5.dp, colors.border, CircleShape)
                 },
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (checked) {
+        if (isDone) {
             Text("✓", style = ColoringTheme.typography.caption, color = colors.white)
+        } else if (isSelected) {
+            // Yellow is a light fill — dark forest text keeps the check legible, same as
+            // .btn-icon-yellow's content color.
+            Text("✓", style = ColoringTheme.typography.caption, color = colors.forest)
         }
     }
 }
