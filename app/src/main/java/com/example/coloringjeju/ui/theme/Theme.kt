@@ -1,58 +1,91 @@
 package com.example.coloringjeju.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+/**
+ * Maps design-system tokens onto an M3 [androidx.compose.material3.ColorScheme] so any stock
+ * Material3 component (Scaffold, TextField, Snackbar, ...) also inherits the brand palette.
+ * Prefer [ColoringTheme.colors] for anything the style guide defines explicitly.
+ */
+private fun coloringColorScheme(colors: ColoringColors) = lightColorScheme(
+    primary = colors.primary,
+    onPrimary = colors.white,
+    primaryContainer = colors.mint,
+    onPrimaryContainer = colors.primaryDeepest,
+    secondary = colors.teal,
+    onSecondary = colors.white,
+    secondaryContainer = colors.mint,
+    onSecondaryContainer = colors.primaryDeepest,
+    tertiary = colors.yellow,
+    onTertiary = colors.forest,
+    background = colors.offWhite,
+    onBackground = colors.textPrimary,
+    surface = colors.white,
+    onSurface = colors.textPrimary,
+    surfaceVariant = colors.offWhite,
+    onSurfaceVariant = colors.textSecondary,
+    outline = colors.border,
+    outlineVariant = colors.border,
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
-
+/**
+ * Root theme for the Coloring Korea design system.
+ *
+ * The reference tokens define a single palette (no dark-mode variant), so this theme is
+ * intentionally not dark/dynamic-color aware — extend [coloringColorScheme] first if a dark
+ * palette is added to tokens.css down the line.
+ *
+ * Access tokens anywhere below this via [ColoringTheme], e.g. `ColoringTheme.colors.primary`,
+ * `ColoringTheme.spacing.space4`, `ColoringTheme.shapes.full`.
+ */
 @Composable
-fun ColoringJejuTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+fun ColoringJejuTheme(content: @Composable () -> Unit) {
+    val colors = ColoringColors()
+    val spacing = ColoringSpacing()
+    val radius = ColoringRadius()
+    val shapes = ColoringShapes()
+    val shadows = ColoringShadows()
+    val typography = ColoringTypography()
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    CompositionLocalProvider(
+        LocalColoringColors provides colors,
+        LocalColoringSpacing provides spacing,
+        LocalColoringRadius provides radius,
+        LocalColoringShapes provides shapes,
+        LocalColoringShadows provides shadows,
+        LocalColoringTypography provides typography,
+    ) {
+        // Note: M3's Shapes(...) constructor is internal in this Compose version, so the
+        // Material shape scale is left at its default here. Use ColoringTheme.shapes directly
+        // (as every component in ui/components does) to apply the design-system radii.
+        MaterialTheme(
+            colorScheme = coloringColorScheme(colors),
+            typography = coloringMaterialTypography(colors, typography),
+            content = content,
+        )
     }
+}
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+/** Single entry point for design tokens, mirroring `MaterialTheme.*` ergonomics. */
+object ColoringTheme {
+    val colors: ColoringColors
+        @Composable get() = LocalColoringColors.current
+
+    val spacing: ColoringSpacing
+        @Composable get() = LocalColoringSpacing.current
+
+    val radius: ColoringRadius
+        @Composable get() = LocalColoringRadius.current
+
+    val shapes: ColoringShapes
+        @Composable get() = LocalColoringShapes.current
+
+    val shadows: ColoringShadows
+        @Composable get() = LocalColoringShadows.current
+
+    val typography: ColoringTypography
+        @Composable get() = LocalColoringTypography.current
 }
