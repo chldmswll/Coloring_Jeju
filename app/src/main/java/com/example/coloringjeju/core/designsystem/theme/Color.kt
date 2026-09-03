@@ -1,4 +1,4 @@
-package com.example.coloringjeju.ui.theme
+package com.example.coloringjeju.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
