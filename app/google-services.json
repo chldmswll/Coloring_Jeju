@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "276714631817",
+    "project_id": "coloring-jeju",
+    "storage_bucket": "coloring-jeju.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276714631817:android:42f4ca41e1f50e99ba0c58",
+        "android_client_info": {
+          "package_name": "com.example.coloringjeju"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdiAa-GIb6bOPji7dTqBoZI1JQIG_0RaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

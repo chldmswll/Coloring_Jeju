@@ -2,7 +2,9 @@ package com.example.coloringjeju.presentation.Home.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -24,6 +26,11 @@ import com.example.coloringjeju.ui.theme.ColoringTheme
  * [isSaved] drives both the pill and the bottom button: false shows "+ MY 지도에 추가" (add),
  * true shows "MY 지도에서 삭제" (remove) — matching whichever tab (추천 지도 / MY 지도) the pin
  * was opened from, since MY 지도 only ever shows places that are already saved.
+ *
+ * [groupName] non-null (whenever a 그룹 is the active `MY 지도 ▾` selection — see
+ * [com.example.coloringjeju.presentation.Home.HomeMapScreen]) adds a second button below the MY 지도
+ * one, toggling this place on that group's *shared* map instead — the two are independent, so a
+ * place can be on one, the other, both, or neither.
  */
 @Composable
 fun PlaceDetailContent(
@@ -35,6 +42,9 @@ fun PlaceDetailContent(
     imageUrl: String?,
     onToggleSaved: () -> Unit,
     modifier: Modifier = Modifier,
+    groupName: String? = null,
+    isSavedToGroup: Boolean = false,
+    onToggleGroupSaved: (() -> Unit)? = null,
 ) {
     val colors = ColoringTheme.colors
     Column(modifier = modifier) {
@@ -65,6 +75,15 @@ fun PlaceDetailContent(
             SecondaryButton(text = "MY 지도에서 삭제", onClick = onToggleSaved, modifier = Modifier.fillMaxWidth())
         } else {
             PrimaryButton(text = "MY 지도에 추가", onClick = onToggleSaved, modifier = Modifier.fillMaxWidth())
+        }
+
+        if (groupName != null && onToggleGroupSaved != null) {
+            Spacer(Modifier.height(10.dp))
+            SecondaryButton(
+                text = if (isSavedToGroup) "$groupName 그룹 지도에서 삭제" else "$groupName 그룹 지도에 추가",
+                onClick = onToggleGroupSaved,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

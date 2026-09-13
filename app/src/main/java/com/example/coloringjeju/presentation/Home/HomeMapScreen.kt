@@ -3,6 +3,7 @@ package com.example.coloringjeju.presentation.Home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -18,13 +19,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.coloringjeju.core.auth.AuthRepository
+import com.example.coloringjeju.core.group.GroupRepository
+import com.example.coloringjeju.core.group.model.GroupSpot
+import com.example.coloringjeju.core.group.model.MapSource
+import com.example.coloringjeju.core.group.model.TravelGroup
+import com.example.coloringjeju.core.group.model.toGroupSpot
+import com.example.coloringjeju.core.group.model.toSavedSpot
 import com.example.coloringjeju.core.local.datastore.SavedSpot
 import com.example.coloringjeju.core.local.datastore.SavedSpotsStore
 import com.example.coloringjeju.core.network.TourApiResult
@@ -38,9 +48,11 @@ import com.example.coloringjeju.presentation.Home.components.PlaceDetailContent
 import com.example.coloringjeju.presentation.Home.components.RainbowProgressRow
 import com.example.coloringjeju.ui.components.BottomTabBar
 import com.example.coloringjeju.ui.components.MainTabs
+import com.example.coloringjeju.ui.components.MapSourceDropdown
 import com.example.coloringjeju.ui.components.SegmentedControl
 import com.example.coloringjeju.ui.theme.ColoringJejuTheme
 import com.example.coloringjeju.ui.theme.ColoringTheme
+import kotlinx.coroutines.launch
 
 private const val TAB_RECOMMENDED = "추천 지도"
 private const val TAB_MY = "MY 지도"
@@ -76,6 +88,12 @@ private sealed interface PlaceSheet {
  * 추천 지도 shows the fixed recommendation set; its pins read their saved/verified state out of the
  * same store, so a place never looks verified on one tab and unverified on the other.
  *
+ * MY 지도 tab also carries a `MY 지도 ▾` [MapSourceDropdown]: switching it to a joined
+ * [TravelGroup] swaps the map to that group's *shared* Firestore map ([GroupRepository.groupSpots])
+ * instead of the personal one, and the detail sheet gains a second "그룹 지도에 추가/삭제" button
+ * (independent of the MY 지도 one) that targets whichever group is currently selected — even while
+ * still browsing 추천 지도, so a recommended place can be pushed straight to the group.
+ *
  * [selectedTab]/[onSelectTab] are lifted the same way as the other tab-root screens.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,9 +105,28 @@ fun HomeMapScreen(
 ) {
     val colors = ColoringTheme.colors
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val savedStore = remember { SavedSpotsStore.get(context) }
     val savedSpots by savedStore.spots.collectAsStateWithLifecycle()
     val savedIds = savedSpots.map { it.contentId }.toSet()
+
+    val uid = remember { AuthRepository.currentUser?.uid.orEmpty() }
+    var groups by remember { mutableStateOf<List<TravelGroup>>(emptyList()) }
+    LaunchedEffect(uid) {
+        if (uid.isNotEmpty()) GroupRepository.myGroups(uid).collect { groups = it }
+    }
+
+    // Which map MY 지도 shows — the personal one, or one joined group's shared one. Independent of
+    // [mapTab]: it stays selected even while browsing 추천 지도, so the sheet's group button still
+    // knows which group to target there too.
+    var mapSource by remember { mutableStateOf<MapSource>(MapSource.Personal) }
+    var groupSpots by remember { mutableStateOf<List<GroupSpot>>(emptyList()) }
+    LaunchedEffect(mapSource) {
+        val source = mapSource
+        groupSpots = emptyList()
+        if (source is MapSource.Group) GroupRepository.groupSpots(source.group.code).collect { groupSpots = it }
+    }
+    val groupSpotIds = groupSpots.map { it.contentId }.toSet()
 
     var mapTab by remember { mutableStateOf(TAB_RECOMMENDED) }
     var sheet by remember { mutableStateOf<PlaceSheet?>(null) }
@@ -123,8 +160,22 @@ fun HomeMapScreen(
         if (spot.contentId in savedIds) savedStore.remove(spot.contentId) else savedStore.add(spot)
     }
 
+    /** Add/remove a place on a group's *shared* map — independent of [toggleSaved]'s personal one. */
+    val toggleGroupSaved: (SavedSpot, TravelGroup) -> Unit = { spot, group ->
+        scope.launch {
+            if (spot.contentId in groupSpotIds) {
+                GroupRepository.removeSpot(group.code, spot.contentId)
+            } else {
+                GroupRepository.addSpot(group.code, spot.toGroupSpot(uid))
+            }
+        }
+    }
+
     val visiblePins = if (mapTab == TAB_MY) {
-        savedSpots.map { it.toMapPin() }
+        when (val source = mapSource) {
+            MapSource.Personal -> savedSpots.map { it.toMapPin() }
+            is MapSource.Group -> groupSpots.map { it.toSavedSpot().toMapPin() }
+        }
     } else {
         recommendedPins.map { pin ->
             val saved = savedSpots.firstOrNull { it.contentId == pin.contentId }
@@ -159,20 +210,28 @@ fun HomeMapScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 RainbowProgressRow(colors = rainbowSlots(savedSpots))
-                SegmentedControl(
-                    options = listOf(TAB_RECOMMENDED, TAB_MY),
-                    selected = mapTab,
-                    onSelect = { mapTab = it },
-                    label = { it },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SegmentedControl(
+                        options = listOf(TAB_RECOMMENDED, TAB_MY),
+                        selected = mapTab,
+                        onSelect = { mapTab = it },
+                        label = { it },
+                    )
+                    if (mapTab == TAB_MY) {
+                        MapSourceDropdown(selected = mapSource, groups = groups, onSelect = { mapSource = it })
+                    }
+                }
                 JejuMapView(
                     pins = visiblePins,
                     onPinClick = { pin ->
-                        val saved = savedSpots.firstOrNull { it.contentId == pin.contentId }
-                        sheet = if (mapTab == TAB_MY && saved != null) {
-                            PlaceSheet.Saved(saved)
+                        sheet = if (mapTab == TAB_MY) {
+                            when (mapSource) {
+                                MapSource.Personal -> savedSpots.firstOrNull { it.contentId == pin.contentId }
+                                is MapSource.Group -> groupSpots.firstOrNull { it.contentId == pin.contentId }?.toSavedSpot()
+                            }?.let(PlaceSheet::Saved) ?: PlaceSheet.Recommended(pin)
                         } else {
-                            PlaceSheet.Recommended(pin)
+                            val saved = savedSpots.firstOrNull { it.contentId == pin.contentId }
+                            if (saved != null) PlaceSheet.Saved(saved) else PlaceSheet.Recommended(pin)
                         }
                     },
                 )
@@ -207,6 +266,7 @@ fun HomeMapScreen(
         val description = place?.description?.ifBlank { null }
             ?: fetchedOverview
             ?: DESCRIPTION_LOADING
+        val activeGroup = (mapSource as? MapSource.Group)?.group
 
         ModalBottomSheet(
             onDismissRequest = { sheet = null },
@@ -221,6 +281,9 @@ fun HomeMapScreen(
                 isSaved = place != null && place.contentId in savedIds,
                 imageUrl = place?.image,
                 onToggleSaved = { place?.let(toggleSaved) },
+                groupName = activeGroup?.name,
+                isSavedToGroup = place != null && place.contentId in groupSpotIds,
+                onToggleGroupSaved = activeGroup?.let { group -> { place?.let { toggleGroupSaved(it, group) } } },
                 modifier = bodyModifier,
             )
         }

@@ -23,15 +23,16 @@ import com.example.coloringjeju.ui.theme.ColoringTheme
 data class ColoringTabItem(val label: String)
 
 /**
- * The 3 tabs actually implemented as switchable screens (홈 지도 / 스탬프 / 조각모음). The mock's
- * bottom bar shows 5 slots (그룹, 마이 included) but those two have no screen behind them yet, so
- * every screen's [BottomTabBar] is built from this shared 3-item list instead of repeating it.
+ * The 5 tabs implemented as switchable screens (홈 지도 / 스탬프 / 조각모음 / 그룹 / 마이페이지).
+ * Every screen's [BottomTabBar] is built from this shared list instead of repeating it.
  */
 object MainTabs {
     const val HOME = 0
     const val STAMP = 1
     const val COLLECTION = 2
-    val items = listOf("홈", "스탬프", "조각").map { ColoringTabItem(it) }
+    const val GROUP = 3
+    const val MY = 4
+    val items = listOf("홈", "스탬프", "조각", "그룹", "마이").map { ColoringTabItem(it) }
 }
 
 /**
