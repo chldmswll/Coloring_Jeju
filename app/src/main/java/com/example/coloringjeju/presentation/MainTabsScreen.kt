@@ -13,8 +13,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.coloringjeju.core.local.datastore.SavedSpot
+import com.example.coloringjeju.core.local.datastore.SavedSpotsStore
 import com.example.coloringjeju.presentation.Camera.CameraColorExtractScreen
 import com.example.coloringjeju.presentation.Collection.CollectionScreen
 import com.example.coloringjeju.presentation.Collection.components.CollectedPiece
@@ -36,19 +40,27 @@ import com.example.coloringjeju.ui.theme.ColoringJejuTheme
  * screen. [HomeMapScreen] manages its own "내 지도에 여행지 추가하기" sheet and place-detail sheet
  * internally (real draggable bottom sheets), so it needs none of this.
  *
+ * MY 지도 and 스탬프 are two views of one list: [SavedSpotsStore] is collected here and handed to
+ * [StampListScreen], while [HomeMapScreen] collects the same shared store. Adding a place on the
+ * map creates its stamp mission; completing that mission writes the captured color back onto the
+ * place, which checks off its stamp row *and* turns its map marker from grayscale to color.
+ *
  * The stamp tab: picking a place in [StampListScreen] and tapping "인증하기" swaps it for
  * [LocationVerifyScreen] for that place. "카메라 열기" there launches the device's own camera
  * ([ActivityResultContracts.TakePicturePreview]); once a photo comes back it swaps to
  * [CameraColorExtractScreen] showing that photo in the viewfinder. "미션 완료" there pops a
  * congratulations toast, saves the photo + picked color + place as a [CollectedPiece] — shown as a
- * card in 조각모음 — and steps back down to [StampListScreen]. Each screen's back button steps one
- * level back down this same chain without saving anything.
+ * card in 조각모음 — records the color on the place itself, and steps back down to
+ * [StampListScreen]. Each screen's back button steps one level back down this same chain without
+ * saving anything.
  */
 @Composable
 fun MainTabsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val savedStore = remember { SavedSpotsStore.get(context) }
+    val savedSpots by savedStore.spots.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(MainTabs.HOME) }
-    var verifyingPlace by remember { mutableStateOf<String?>(null) }
+    var verifyingPlace by remember { mutableStateOf<SavedSpot?>(null) }
     var capturedPhoto by remember { mutableStateOf<Bitmap?>(null) }
     var collectedPieces by remember { mutableStateOf(listOf<CollectedPiece>()) }
 
@@ -61,9 +73,9 @@ fun MainTabsScreen(modifier: Modifier = Modifier) {
             val photo = capturedPhoto
             val place = verifyingPlace
             when {
-                photo != null -> CameraColorExtractScreen(
+                photo != null && place != null -> CameraColorExtractScreen(
                     modifier = modifier.fillMaxSize(),
-                    placeName = place ?: "천지연폭포",
+                    placeName = place.title,
                     photo = photo,
                     selectedTab = selectedTab,
                     onSelectTab = { selectedTab = it },
@@ -71,10 +83,13 @@ fun MainTabsScreen(modifier: Modifier = Modifier) {
                     onRetake = { cameraLauncher.launch(null) },
                     onComplete = { color ->
                         collectedPieces = collectedPieces + CollectedPiece(
-                            placeName = place ?: "천지연폭포",
+                            placeName = place.title,
                             photo = photo,
                             color = color,
                         )
+                        // The same write checks off the stamp row and colors the place's MY 지도
+                        // marker — until it runs, both stay in their unverified state.
+                        savedStore.markVerified(place.contentId, color.toArgb())
                         capturedPhoto = null
                         verifyingPlace = null
                         Toast.makeText(context, "축하합니다!\n미션에 성공했어요!", Toast.LENGTH_SHORT).apply {
@@ -84,7 +99,7 @@ fun MainTabsScreen(modifier: Modifier = Modifier) {
                 )
                 place != null -> LocationVerifyScreen(
                     modifier = modifier.fillMaxSize(),
-                    placeName = place,
+                    placeName = place.title,
                     selectedTab = selectedTab,
                     onSelectTab = { selectedTab = it },
                     onBack = { verifyingPlace = null },
@@ -92,6 +107,7 @@ fun MainTabsScreen(modifier: Modifier = Modifier) {
                 )
                 else -> StampListScreen(
                     modifier = modifier.fillMaxSize(),
+                    spots = savedSpots,
                     selectedTab = selectedTab,
                     onSelectTab = { selectedTab = it },
                     onVerifyPlace = { verifyingPlace = it },

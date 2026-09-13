@@ -49,7 +49,7 @@ object TourApiParser {
             if (header.optString("resultCode") != "0000") {
                 return TourApiResult.Error(header.optString("resultMsg", "알 수 없는 오류가 발생했어요."))
             }
-            TourApiResult.Success(raw.itemObjects().mapNotNull { it.optString("originimgurl").blankToNull() })
+            TourApiResult.Success(raw.itemObjects().mapNotNull { it.optString("originimgurl").blankToNull()?.toHttpsUrl() })
         } catch (e: Exception) {
             TourApiResult.Error("이미지 응답을 해석하지 못했어요 (${e.message ?: e::class.simpleName}).")
         }
@@ -88,11 +88,20 @@ object TourApiParser {
         tel = optString("tel"),
         lat = optString("mapy").toDoubleOrNull(),
         lng = optString("mapx").toDoubleOrNull(),
-        image = optString("firstimage").blankToNull(),
-        thumbnail = optString("firstimage2").blankToNull(),
+        image = optString("firstimage").blankToNull()?.toHttpsUrl(),
+        thumbnail = optString("firstimage2").blankToNull()?.toHttpsUrl(),
         homepage = optString("homepage").blankToNull()?.stripHtmlTags(),
-        overview = optString("overview").blankToNull(),
+        overview = optString("overview").blankToNull()?.stripHtmlTags(),
     )
 
     private fun String.stripHtmlTags(): String = replace(Regex("<[^>]*>"), "").trim()
+
+    /**
+     * TourAPI serves every `firstimage`/`firstimage2` over plain `http://`, which Android blocks
+     * outright (cleartext traffic is off by default from targetSdk 28 up) — without this, every
+     * photo silently fails to load. `tong.visitkorea.or.kr` serves the identical file over TLS,
+     * so upgrade the scheme here rather than re-opening the whole app to cleartext.
+     */
+    private fun String.toHttpsUrl(): String =
+        if (startsWith("http://")) "https://" + substring("http://".length) else this
 }

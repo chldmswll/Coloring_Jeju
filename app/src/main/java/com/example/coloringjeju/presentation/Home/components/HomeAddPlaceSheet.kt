@@ -14,10 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.coloringjeju.core.local.datastore.SavedSpot
-import com.example.coloringjeju.core.local.datastore.SavedSpotsStore
 import com.example.coloringjeju.core.network.TourApiResult
 import com.example.coloringjeju.core.network.TourRepository
 import com.example.coloringjeju.core.network.model.TourCategory
@@ -34,16 +31,23 @@ private val CategoryOptions = listOf("전체") + TourCategory.entries.map { it.l
  * [com.example.coloringjeju.presentation.Home.HomeMapScreen]'s `BottomSheetScaffold`. The scaffold
  * supplies the drag handle and drag gesture (peek ↔ expanded) itself — this is just what sits
  * inside it: the collapsed hint line, then a live TourAPI (KorService2) search/filter/list that
- * comes into view once dragged up. Self-contained — it owns its own query/category/results state
- * and reads/writes [SavedSpotsStore] directly, so [com.example.coloringjeju.presentation.Home.HomeMapScreen]
- * doesn't need to know any of that.
+ * comes into view once dragged up.
+ *
+ * It owns its own query/category/results state, but MY 지도 membership is lifted to
+ * [com.example.coloringjeju.presentation.Home.HomeMapScreen] ([savedIds]/[onToggleSaved]): the
+ * detail sheet can save a place too, and both need to agree on what's already saved.
+ *
+ * Tapping a row reports it via [onSpotClick] so the caller can open the very same detail sheet a
+ * map pin opens; the row's trailing +/✓ button still saves without leaving the list.
  */
 @Composable
-fun HomeAddPlaceSheet(modifier: Modifier = Modifier) {
+fun HomeAddPlaceSheet(
+    savedIds: Set<String>,
+    onToggleSaved: (TourSpot) -> Unit,
+    onSpotClick: (TourSpot) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = ColoringTheme.colors
-    val context = LocalContext.current
-    val savedStore = remember { SavedSpotsStore(context) }
-    var savedIds by remember { mutableStateOf(savedStore.getAll().map { it.contentId }.toSet()) }
 
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("전체") }
@@ -109,25 +113,8 @@ fun HomeAddPlaceSheet(modifier: Modifier = Modifier) {
                     tag = spot.category.label,
                     imageUrl = spot.thumbnail ?: spot.image,
                     added = spot.contentId in savedIds,
-                    onToggleAdded = {
-                        if (spot.contentId in savedIds) {
-                            savedStore.remove(spot.contentId)
-                            savedIds = savedIds - spot.contentId
-                        } else if (spot.lat != null && spot.lng != null) {
-                            savedStore.add(
-                                SavedSpot(
-                                    contentId = spot.contentId,
-                                    title = spot.title,
-                                    image = spot.thumbnail ?: spot.image,
-                                    category = spot.category.label,
-                                    lat = spot.lat,
-                                    lng = spot.lng,
-                                    addedAt = System.currentTimeMillis(),
-                                ),
-                            )
-                            savedIds = savedIds + spot.contentId
-                        }
-                    },
+                    onToggleAdded = { onToggleSaved(spot) },
+                    onClick = { onSpotClick(spot) },
                 )
             }
         }

@@ -9,15 +9,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.coloringjeju.ui.theme.ColoringTheme
 
 /**
- * Hero photo slot on [PlaceDetailScreen]. Stands in for the place's real photo (e.g. 한라산) with
- * a brand-toned gradient until a photo pipeline is wired up.
+ * Hero photo slot on the place detail sheet/screen — the place's real TourAPI photo
+ * (`firstimage`), center-cropped.
+ *
+ * The brand gradient it used to be is now only the backdrop: it shows through while the photo
+ * loads, and stays as-is for the places TourAPI has no photo for. That gap is real — 숙박 is only
+ * ~63% covered — so this never renders an empty box.
  */
 @Composable
-fun PlaceHeroImage(modifier: Modifier = Modifier) {
+fun PlaceHeroImage(imageUrl: String?, modifier: Modifier = Modifier) {
     val colors = ColoringTheme.colors
     Box(
         modifier = modifier
@@ -27,5 +33,14 @@ fun PlaceHeroImage(modifier: Modifier = Modifier) {
             .background(
                 Brush.verticalGradient(listOf(colors.tealLight, colors.primaryDark)),
             ),
-    )
+    ) {
+        if (imageUrl != null) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+    }
 }

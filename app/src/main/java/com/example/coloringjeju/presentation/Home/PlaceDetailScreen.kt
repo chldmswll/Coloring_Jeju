@@ -28,6 +28,8 @@ fun PlaceDetailScreen(
     headline: String = "제주의 가장 높은 봉우리",
     description: String = "해발 1,947m의 한라산은 계절마다 다른 풍경을 보여주는 제주 대표 명소예요. " +
         "가벼운 산책부터 정상 탐방까지, 나만의 여행 루트를 만들어 보세요.",
+    // 한라산 = TourAPI contentId 127635. On the map tab the sheet passes its own pin's photo.
+    imageUrl: String? = "https://tong.visitkorea.or.kr/cms/resource_photo/41/3460441_image2_1.jpg",
 ) {
     val colors = ColoringTheme.colors
     var isSaved by remember { mutableStateOf(false) }
@@ -37,6 +39,7 @@ fun PlaceDetailScreen(
         headline = headline,
         description = description,
         isSaved = isSaved,
+        imageUrl = imageUrl,
         onToggleSaved = { isSaved = !isSaved },
         modifier = modifier
             .fillMaxSize()

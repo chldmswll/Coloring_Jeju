@@ -2,6 +2,7 @@ package com.example.coloringjeju.presentation.Home.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,11 @@ import com.example.coloringjeju.ui.components.ColoringIconButton
 import com.example.coloringjeju.ui.components.ColoringIconButtonVariant
 import com.example.coloringjeju.ui.theme.ColoringTheme
 
-/** A single recommended-place row inside [AddPlaceSheetContent] / [HomeAddPlaceSheet], e.g. "카멜리아힐 · 자연". */
+/**
+ * A single recommended-place row inside [AddPlaceSheetContent] / [HomeAddPlaceSheet], e.g.
+ * "카멜리아힐 · 자연". Tapping the row itself opens the place's detail sheet via [onClick]; the
+ * trailing +/✓ button is separate and only toggles MY 지도.
+ */
 @Composable
 fun PlaceListItem(
     name: String,
@@ -29,6 +34,7 @@ fun PlaceListItem(
     onToggleAdded: () -> Unit,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
+    onClick: (() -> Unit)? = null,
 ) {
     val colors = ColoringTheme.colors
     Row(
@@ -36,6 +42,7 @@ fun PlaceListItem(
             .fillMaxWidth()
             .clip(ColoringTheme.shapes.md)
             .background(colors.white)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .border(1.5.dp, if (added) colors.primary else colors.border, ColoringTheme.shapes.md)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
