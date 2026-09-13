@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.coloringjeju" />
+                  <option name="mobileSdkAppId" value="1:276714631817:android:42f4ca41e1f50e99ba0c58" />
+                  <option name="projectId" value="coloring-jeju" />
+                  <option name="projectNumber" value="276714631817" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

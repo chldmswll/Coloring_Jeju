@@ -8,10 +8,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.coloringjeju.core.auth.AuthRepository
+import com.example.coloringjeju.core.auth.AutoLoginPreferences
+import com.example.coloringjeju.presentation.Auth.AuthScreen
 import com.example.coloringjeju.presentation.MainTabsScreen
 import com.example.coloringjeju.ui.theme.ColoringJejuTheme
+import com.google.firebase.auth.FirebaseUser
 import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
@@ -27,11 +35,28 @@ class MainActivity : ComponentActivity() {
             osmdroidBasePath = applicationContext.cacheDir
             osmdroidTileCache = applicationContext.cacheDir.resolve("osmdroid/tiles").apply { mkdirs() }
         }
+        // Firebase persists a signed-in session on disk on its own; "자동 로그인" left unchecked at
+        // login means that session should NOT survive a cold start, so enforce it here — once,
+        // before the first composition reads AuthRepository.currentUser below.
+        if (!AutoLoginPreferences.isEnabled(this)) {
+            AuthRepository.signOut()
+        }
         enableEdgeToEdge()
         setContent {
             ColoringJejuTheme {
+                var currentUser by remember { mutableStateOf<FirebaseUser?>(AuthRepository.currentUser) }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainTabsScreen(modifier = Modifier.padding(innerPadding))
+                    if (currentUser == null) {
+                        AuthScreen(
+                            onAuthenticated = { currentUser = it },
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                    } else {
+                        MainTabsScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onLoggedOut = { currentUser = null },
+                        )
+                    }
                 }
             }
         }
