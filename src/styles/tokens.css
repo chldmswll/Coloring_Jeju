@@ -1,0 +1,107 @@
+/*
+ * 디자인 토큰 — 안드로이드 앱(Compose)의 ui/theme 값을 1:1로 옮긴 것.
+ * 두 클라이언트가 같은 화면처럼 보이려면 이 파일이 유일한 출처여야 한다.
+ * 값을 바꿀 일이 생기면 Compose 쪽(ui/theme/Color.kt 등)도 같이 바꿀 것.
+ */
+:root {
+  /* 브랜드 */
+  --primary: #4e9e6e;
+  --primary-dark: #2d8445;
+  --primary-deepest: #1f5c30;
+  --forest: #33413c;
+
+  /* 강조색 — 스탬프 선택(yellow)과 인증 완료(primary)는 의미가 다르니 섞지 말 것 */
+  --yellow: #ffc42f;
+  --teal: #3fa99b;
+  --teal-light: #5fc1b3;
+  --pink: #f7a8a8;
+  --orange: #f0916a;
+
+  /* 표면 */
+  --white: #ffffff;
+  --cream: #fffcec;
+  --mint: #e9f2e4;
+  --off-white: #f8f6ef;
+  --border: #e3e3e3;
+
+  /* 글자 */
+  --text-primary: #2b2e24;
+  --text-secondary: #7a7e70;
+  --text-tertiary: #abafa2;
+
+  /* 모서리 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* 간격 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+
+  /* 타이포 — 이름과 값 모두 Compose의 ColoringTheme.typography와 동일 */
+  --font-display-size: 24px;
+  --font-display-weight: 800;
+  --font-display-line: 31px;
+
+  --font-title-size: 18px;
+  --font-title-weight: 700;
+  --font-title-line: 24px;
+
+  --font-subtitle-size: 14px;
+  --font-subtitle-weight: 600;
+  --font-subtitle-line: 20px;
+
+  --font-body-size: 14px;
+  --font-body-weight: 400;
+  --font-body-line: 21px;
+
+  --font-button-size: 16px;
+  --font-button-weight: 700;
+  --font-button-line: 19px;
+
+  --font-caption-size: 12px;
+  --font-caption-weight: 500;
+  --font-caption-line: 17px;
+
+  /* 그림자 */
+  --shadow-card: 0 2px 8px rgba(43, 46, 36, 0.06);
+  --shadow-raised: 0 4px 16px rgba(43, 46, 36, 0.1);
+}
+
+/* 타이포 유틸 — 화면마다 font-size/weight/line-height를 따로 쓰지 않도록 */
+.t-display {
+  font-size: var(--font-display-size);
+  font-weight: var(--font-display-weight);
+  line-height: var(--font-display-line);
+}
+.t-title {
+  font-size: var(--font-title-size);
+  font-weight: var(--font-title-weight);
+  line-height: var(--font-title-line);
+}
+.t-subtitle {
+  font-size: var(--font-subtitle-size);
+  font-weight: var(--font-subtitle-weight);
+  line-height: var(--font-subtitle-line);
+}
+.t-body {
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-line);
+}
+.t-button {
+  font-size: var(--font-button-size);
+  font-weight: var(--font-button-weight);
+  line-height: var(--font-button-line);
+}
+.t-caption {
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-caption-weight);
+  line-height: var(--font-caption-line);
+}

@@ -1,0 +1,73 @@
+.map-frame {
+  width: 100%;
+  height: 320px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--mint);
+}
+
+.map-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/*
+ * 사진 핀. 안드로이드에서는 Canvas 로 원형 크롭·흑백 변환을 직접 그려야 했지만
+ * 웹에서는 border-radius 와 filter 로 끝난다.
+ */
+.map-pin {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 2.5px solid var(--border);
+  border-radius: 50%;
+  background: var(--white);
+  overflow: visible;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: var(--shadow-card);
+  transition: transform 120ms ease;
+}
+
+.map-pin:active {
+  transform: scale(0.94);
+}
+
+.map-pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  /* 색을 얻기 전까지는 흑백 — "인증하면 색이 들어온다"를 지도에서도 그대로 보여준다. */
+  filter: grayscale(1);
+}
+
+.map-pin.is-verified img {
+  filter: none;
+}
+
+/* 겹쳐서 숨은 장소 개수. 눌러서 확대하면 풀린다. */
+.map-pin__badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--forest);
+  border: 1.5px solid var(--white);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
