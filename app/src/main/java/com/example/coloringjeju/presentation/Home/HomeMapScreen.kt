@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.coloringjeju.core.local.assets.RecommendedSpot
+import com.example.coloringjeju.core.local.assets.RecommendedSpots
 import com.example.coloringjeju.core.local.datastore.SavedSpot
 import com.example.coloringjeju.core.local.datastore.SavedSpotsStore
 import com.example.coloringjeju.core.network.TourApiResult
@@ -73,8 +75,9 @@ private sealed interface PlaceSheet {
  * [com.example.coloringjeju.presentation.MainTabsScreen]) — so "인증하면 색이 들어온다" is the same
  * fact on the map as on the stamp list.
  *
- * 추천 지도 shows the fixed recommendation set; its pins read their saved/verified state out of the
- * same store, so a place never looks verified on one tab and unverified on the other.
+ * 추천 지도 shows [RecommendedSpots] — 한국관광공사's 중심관광지 ranking joined to TourAPI, shipped
+ * as an asset. Its pins read their saved/verified state out of the same store, so a place never
+ * looks verified on one tab and unverified on the other.
  *
  * [selectedTab]/[onSelectTab] are lifted the same way as the other tab-root screens.
  */
@@ -94,7 +97,7 @@ fun HomeMapScreen(
     var mapTab by remember { mutableStateOf(TAB_RECOMMENDED) }
     var sheet by remember { mutableStateOf<PlaceSheet?>(null) }
 
-    val recommendedPins = remember { jejuMapPins() }
+    val recommendedPins = remember { RecommendedSpots.load(context).map { it.toMapPin() } }
 
     // `areaBasedList`/`searchKeyword` don't return `overview`, and neither does what MY 지도 keeps
     // on disk for a place saved from search — so the description comes from a follow-up
@@ -201,7 +204,7 @@ fun HomeMapScreen(
             is PlaceSheet.Saved -> openSheet.spot
         }
         val headline = when (openSheet) {
-            is PlaceSheet.Search -> openSheet.spot.addr1.ifBlank { openSheet.spot.category.label }
+            is PlaceSheet.Search -> openSheet.spot.addr1.ifBlank { openSheet.spot.category?.label.orEmpty() }
             else -> place?.headline.orEmpty()
         }
         val description = place?.description?.ifBlank { null }
@@ -270,7 +273,7 @@ private fun TourSpot.toSavedSpot(): SavedSpot? {
         contentId = contentId,
         title = title,
         image = image ?: thumbnail,
-        category = category.label,
+        category = category?.label.orEmpty(),
         lat = spotLat,
         lng = spotLng,
         addedAt = System.currentTimeMillis(),
@@ -285,60 +288,23 @@ private fun rainbowSlots(saved: List<SavedSpot>): List<Color?> {
     return List(6) { earned.getOrNull(it) }
 }
 
-// 홈 화면 추천 스팟 6곳 — 고정 데이터 (좌표는 팀원이 준 lib/featured-spots.ts 기준).
-// contentId/imageUrl은 TourAPI(searchKeyword2)에서 각 장소를 찾아 받아온 값 — 사진은 마커와 상세
-// 시트 히어로 이미지에 함께 쓰인다. 설명 문구는 API의 overview보다 짧고 앱 톤에 맞아 손으로 쓴
-// 텍스트를 그대로 둔다. saved/fillColor는 여기서 정하지 않고 SavedSpotsStore에서 읽어 채운다.
-private fun jejuMapPins() = listOf(
-    MapPinData(
-        label = "한라산", emoji = "⛰", fillColor = null, lat = 33.3617, lng = 126.5292,
-        tag = "자연", headline = "제주의 가장 높은 봉우리",
-        description = "해발 1,947m의 한라산은 계절마다 다른 풍경을 보여주는 제주 대표 명소예요. " +
-            "가벼운 산책부터 정상 탐방까지, 나만의 여행 루트를 만들어 보세요.",
-        saved = false,
-        contentId = "127635",
-        imageUrl = "https://tong.visitkorea.or.kr/cms/resource_photo/41/3460441_image2_1.jpg",
-    ),
-    MapPinData(
-        label = "성산일출봉", emoji = "🌅", fillColor = null, lat = 33.4581, lng = 126.9425,
-        tag = "자연", headline = "유네스코가 인정한 일출 명소",
-        description = "화산 분화구가 만든 웅장한 봉우리로, 정상에서 보는 일출이 특히 아름다워요.",
-        saved = false,
-        contentId = "126435",
-        imageUrl = "https://tong.visitkorea.or.kr/cms/resource_photo/26/3052926_image2_1.jpg",
-    ),
-    MapPinData(
-        label = "우도", emoji = "🐄", fillColor = null, lat = 33.5054, lng = 126.9515,
-        tag = "자연", headline = "제주 앞바다의 작은 섬",
-        description = "에메랄드빛 바다와 땅콩 아이스크림으로 유명한, 자전거로 둘러보기 좋은 섬이에요.",
-        saved = false,
-        contentId = "127336",
-        imageUrl = "https://tong.visitkorea.or.kr/cms/resource/71/3554771_image2_1.jpg",
-    ),
-    MapPinData(
-        label = "협재해수욕장", emoji = "🏖", fillColor = null, lat = 33.3941, lng = 126.2396,
-        tag = "자연", headline = "에메랄드빛 협재 해변",
-        description = "고운 백사장과 투명한 바다색으로 유명한 제주 대표 해변이에요. 비양도를 배경으로 노을이 특히 아름다워요.",
-        saved = false,
-        contentId = "127490",
-        imageUrl = "https://tong.visitkorea.or.kr/cms/resource/66/3096066_image2_1.jpg",
-    ),
-    MapPinData(
-        label = "천지연폭포", emoji = "🌊", fillColor = null, lat = 33.2465, lng = 126.5581,
-        tag = "자연", headline = "폭포와 원시림이 만나는 곳",
-        description = "울창한 난대림 사이로 떨어지는 폭포가 인상적인 서귀포 대표 명소예요.",
-        saved = false,
-        contentId = "126438",
-        imageUrl = "https://tong.visitkorea.or.kr/cms/resource/43/4094043_image2_1.jpg",
-    ),
-    MapPinData(
-        label = "월정리해변", emoji = "🏖", fillColor = null, lat = 33.5563, lng = 126.7961,
-        tag = "자연", headline = "카페 거리를 낀 코발트빛 해변",
-        description = "새하얀 모래와 코발트빛 바다, 해변을 따라 늘어선 감성 카페로 유명한 제주 동쪽 명소예요.",
-        saved = false,
-        contentId = "1918639",
-        imageUrl = "https://tong.visitkorea.or.kr/cms/resource/93/4075293_image2_1.jpg",
-    ),
+/**
+ * A 추천 지도 record as a map pin. `saved`/`fillColor` are deliberately left empty here — the screen
+ * fills them in from [SavedSpotsStore], so a place never looks verified on one tab and unverified on
+ * the other.
+ */
+private fun RecommendedSpot.toMapPin() = MapPinData(
+    label = title,
+    emoji = emoji,
+    fillColor = null,
+    lat = lat,
+    lng = lng,
+    tag = category,
+    headline = headline,
+    description = description,
+    saved = false,
+    contentId = contentId,
+    imageUrl = imageUrl,
 )
 
 @Preview(showBackground = true, heightDp = 900)

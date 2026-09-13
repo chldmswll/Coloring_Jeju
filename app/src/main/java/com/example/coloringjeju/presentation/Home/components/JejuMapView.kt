@@ -79,8 +79,11 @@ private const val MIN_ZOOM = 11.0
 private const val DEFAULT_ZOOM = MIN_ZOOM
 private const val MAX_FIT_ZOOM = 13.0
 private const val BOUNDS_PADDING_PX = 40
-private const val PIN_SIZE_DP = 46
-private const val PIN_BORDER_DP = 3
+// 추천 지도 fits all of Jeju on screen, where the closest recommended places sit ~3 km apart — big
+// photo pins overlap each other at that zoom. 36dp keeps the photo readable while leaving the
+// island legible; panning/zooming in separates the rest.
+private const val PIN_SIZE_DP = 36
+private const val PIN_BORDER_DP = 2.5f
 
 /** Remembers which pin set the camera was last fitted to, so loading a photo doesn't re-zoom the map. */
 private class CameraFit {

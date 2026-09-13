@@ -69,7 +69,7 @@ fun HomeAddPlaceSheet(
         loading = false
     }
 
-    val visiblePlaces = results.filter { category == "전체" || it.category.label == category }
+    val visiblePlaces = results.filter { category == "전체" || it.category?.label == category }
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Text("내 지도에 여행지 추가하기", style = ColoringTheme.typography.title, color = colors.textPrimary)
@@ -110,7 +110,7 @@ fun HomeAddPlaceSheet(
             visiblePlaces.forEach { spot ->
                 PlaceListItem(
                     name = spot.title,
-                    tag = spot.category.label,
+                    tag = spot.category?.label.orEmpty(),
                     imageUrl = spot.thumbnail ?: spot.image,
                     added = spot.contentId in savedIds,
                     onToggleAdded = { onToggleSaved(spot) },
