@@ -305,6 +305,7 @@ private fun RecommendedSpot.toMapPin() = MapPinData(
     saved = false,
     contentId = contentId,
     imageUrl = imageUrl,
+    rank = rank,
 )
 
 @Preview(showBackground = true, heightDp = 900)
