@@ -32,6 +32,7 @@ fun PlaceDetailContent(
     headline: String,
     description: String,
     isSaved: Boolean,
+    imageUrl: String?,
     onToggleSaved: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -42,7 +43,7 @@ fun PlaceDetailContent(
             AddToMapPill(isSaved = isSaved, onClick = onToggleSaved)
         }
 
-        PlaceHeroImage(modifier = Modifier.padding(top = 16.dp))
+        PlaceHeroImage(imageUrl = imageUrl, modifier = Modifier.padding(top = 16.dp))
 
         ColoringTag(tag, modifier = Modifier.padding(top = 16.dp))
         Text(
