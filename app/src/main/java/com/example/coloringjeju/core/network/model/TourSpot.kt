@@ -19,5 +19,6 @@ data class TourSpot(
     val homepage: String?,
     val overview: String?,
 ) {
-    val category: TourCategory get() = TourCategory.from(contentTypeId, title)
+    /** null이면 관광지가 아니라는 뜻 (쇼핑·음식점·숙박) — [com.example.coloringjeju.core.network.TourRepository]가 목록에서 걸러낸다. */
+    val category: TourCategory? get() = TourCategory.from(contentTypeId)
 }
