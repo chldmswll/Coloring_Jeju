@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(code) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(code)).data.memberUids;
+    }
+
+    function isTripMember(tripId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberUids;
+    }
+
+    match /groups/{code} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid];
+
+      allow update: if isSignedIn() && (
+        isMember(code) ||
+        (
+          request.resource.data.memberUids == resource.data.memberUids.concat([request.auth.uid]) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids', 'members'])
+        )
+      );
+
+      allow delete: if false;
+
+      match /spots/{spotId} {
+        allow read, write: if isMember(code);
+      }
+    }
+
+    match /trips/{tripId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid];
+
+      allow update: if isSignedIn() && (
+        isTripMember(tripId) ||
+        (
+          request.resource.data.memberUids == resource.data.memberUids.concat([request.auth.uid]) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids', 'members'])
+        )
+      );
+
+      allow delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+
+      match /spots/{spotId} {
+        allow read, write: if isTripMember(tripId);
+      }
+    }
+  }
+}

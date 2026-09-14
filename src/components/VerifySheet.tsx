@@ -1,23 +1,31 @@
 import { useRef, useState } from 'react'
 import { extractTopColors, toThumbnailDataUrl } from '../color/extractColors'
-import { piecesStore } from '../store/pieces'
-import { savedSpotsStore } from '../store/savedSpots'
-import type { SavedSpot } from '../types'
+import { markTripSpotVerified } from '../firebase/trips'
+import type { TripSpot } from '../types'
 
 /**
  * 색 인증 — 사진을 찍고, 그 사진에서 뽑은 색 중 하나를 골라 장소에 기록한다.
  *
- * 이 한 번의 쓰기(savedSpotsStore.markVerified)가 스탬프 행을 인증완료로 바꾸고, 지도 마커를
- * 흑백에서 컬러로 돌리고, 무지개 한 칸을 채운다. 세 화면이 같은 값 하나에서 파생되므로
- * 서로 어긋날 수가 없다.
+ * 이 한 번의 쓰기(markTripSpotVerified)가 스탬프 행을 인증완료로 바꾸고, 지도 마커를
+ * 흑백에서 컬러로 돌리고, 무지개 한 칸을 채우고, 조각모음 앨범에 카드로 남긴다. 화면들이
+ * 전부 같은 값 하나(여행의 spots)에서 파생되므로 서로 어긋날 수가 없다.
  *
  * `capture="environment"` 덕에 폰에서는 바로 후면 카메라가 열리고, PC 에서는 파일 선택이 뜬다.
  * 단 카메라는 보안 컨텍스트에서만 열리므로 배포는 반드시 HTTPS 여야 한다.
  */
-export function VerifySheet({ spot, onClose }: { spot: SavedSpot; onClose: () => void }) {
+export function VerifySheet({
+  tripId,
+  spot,
+  onClose,
+}: {
+  tripId: string
+  spot: TripSpot
+  onClose: () => void
+}) {
   const [photo, setPhoto] = useState<{ url: string; file: File } | null>(null)
   const [colors, setColors] = useState<string[]>([])
   const [picked, setPicked] = useState<string | null>(null)
+  const [caption, setCaption] = useState('')
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -33,14 +41,13 @@ export function VerifySheet({ spot, onClose }: { spot: SavedSpot; onClose: () =>
   async function complete() {
     if (!picked || !photo) return
     setBusy(true)
-    piecesStore.add({
-      contentId: spot.contentId,
-      placeName: spot.title,
-      photo: await toThumbnailDataUrl(photo.file),
-      color: picked,
-      collectedAt: Date.now(),
-    })
-    savedSpotsStore.markVerified(spot.contentId, picked)
+    await markTripSpotVerified(
+      tripId,
+      spot.contentId,
+      picked,
+      await toThumbnailDataUrl(photo.file),
+      caption.trim() || null,
+    )
     setBusy(false)
     onClose()
   }
@@ -88,6 +95,15 @@ export function VerifySheet({ spot, onClose }: { spot: SavedSpot; onClose: () =>
                 />
               ))}
             </div>
+
+            <p className="t-caption sheet__addr">이 순간을 기록할 한마디 (선택)</p>
+            <textarea
+              className="search__input t-body verify__caption"
+              rows={2}
+              placeholder="예: 바람이 좋아서 한참 앉아 있었다"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+            />
           </>
         )}
 

@@ -4,6 +4,11 @@
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: var(--mint);
+  /* 카카오맵 SDK가 내부적으로 타일·컨트롤에 z-index를 붙이는데, 그 값들이 페이지의 다른
+   * z-index 없는 요소보다 위로 새어나가는 경우가 있다. 여기서 별도 쌓임 맥락을 만들어
+   * 지도 내부 레이어가 이 상자 밖(바텀시트·팝업 등)으로는 못 올라오게 가둔다. */
+  position: relative;
+  z-index: 0;
 }
 
 .map-error {
