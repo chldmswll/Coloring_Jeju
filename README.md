@@ -103,10 +103,9 @@ cloudflared tunnel --url http://localhost:5173
 
 ```
 src/
-  components/   화면
+  components/   화면 (AlbumTab — 여행 만들기/참여 포함)
   map/          카카오맵, 마커
-  firebase/     로그인, 그룹
-  store/        MY 지도, 조각모음 (localStorage)
+  firebase/     로그인, 여행(trips) 데이터
   api/          TourAPI
   color/        사진에서 색 뽑기
   data/         추천 20곳
@@ -181,28 +180,43 @@ fetch('/api/tour/searchKeyword2?keyword=우도')
 
 | 무엇 | 어디에 | 뜻 |
 |---|---|---|
-| MY 지도 | 브라우저 (localStorage) | **그 기기에만** 남는다. 다른 폰에서 보면 비어 있다 |
-| 조각모음 | 브라우저 (localStorage) | 위와 같음 |
+| 여행(앨범)·담은 장소·조각모음 | Firebase (`trips` 컬렉션, 웹 전용) | 로그인한 기기 어디서나 같은 여행이 보인다. 그룹 여행은 멤버끼리 실시간 반영 |
 | 로그인 계정 | Firebase | 안드로이드 앱과 **공유** |
-| 그룹 | Firebase | 안드로이드 앱과 **공유**, 실시간 반영 |
 
-즉 **혼자 담은 여행지는 기기에, 같이 보는 그룹은 서버에** 있다. MY 지도까지 기기 간에
-공유하려면 Firestore 로 옮겨야 하는데, 그때는 `src/store/savedSpots.ts` 파일 하나만 고치면
-되도록 만들어 뒀다.
+**개인 여행도 서버에 저장된다** (기기에만 남지 않음) — 다른 기기에서 같은 계정으로 로그인하면
+그대로 보인다. 여행은 만들 때 개인/그룹을 고르고 시작일·종료일을 넣는다. 그룹으로 만들면
+초대 코드가 나오고, 그 코드로 참여한 사람은 같은 여행의 지도·스탬프·조각모음을 같이 채운다.
+종료일이 지나면 자동으로 "다녀옴"으로 분류되어 조각모음에 그 여행 이름의 앨범으로 묶여 보인다.
 
 ## 안드로이드 앱과의 관계
 
-같은 Firebase 프로젝트를 쓴다. 그래서 **앱에서 가입한 계정으로 웹에서 그대로 로그인**되고,
-앱에서 만든 그룹이 웹에도 보인다.
+같은 Firebase 프로젝트를 쓰지만 **로그인 계정만 공유**한다. 그래서 **앱에서 가입한 계정으로
+웹에서 그대로 로그인**은 되지만, 여행·장소·조각모음은 웹이 따로 쓰는 `trips` 컬렉션에 저장되므로
+**안드로이드 앱의 "그룹" 데이터와는 서로 안 보인다.** 안드로이드 앱 코드/데이터를 건드리지 않기
+위해 일부러 별도 컬렉션으로 뒀다.
 
-한 가지 주의할 게 있다. 그룹의 **인증 색 형식이 서로 다르다.**
+## Firestore 보안 규칙 (배포 전 꼭 확인)
 
-| | 저장 형식 |
-|---|---|
-| 안드로이드 | 정수 `-1543350` |
-| 웹 | 문자열 `"#e8734a"` |
+이 저장소에는 `firestore.rules` 가 없다 — 지금 규칙은 Firebase 콘솔에서 직접 관리되고 있을
+가능성이 높다. `trips` 컬렉션을 실제로 쓰기 전에 콘솔(Firestore Database → 규칙)에 아래 내용이
+반영돼 있는지 확인할 것 (기존 규칙이 따로 있다면 지우지 말고 병합해서 추가):
 
-웹은 양쪽 다 읽도록 해뒀지만, 언젠가 한쪽으로 통일하는 게 좋다 (문자열 쪽이 읽기 편하다).
+```
+match /trips/{tripId} {
+  allow read, update, delete: if request.auth != null &&
+    request.auth.uid in resource.data.memberUids;
+  allow create: if request.auth != null &&
+    request.auth.uid == request.resource.data.ownerUid;
+
+  match /spots/{spotId} {
+    allow read, write: if request.auth != null &&
+      request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberUids;
+  }
+}
+```
+
+이게 없으면 로그인만 했으면 아무나 남의 여행을 읽거나 고칠 수 있다(또는 반대로 너무 막혀서
+자기 것도 못 씀).
 
 ## 지도가 회색일 때
 

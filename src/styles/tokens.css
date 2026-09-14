@@ -17,23 +17,28 @@
   --pink: #f7a8a8;
   --orange: #f0916a;
 
-  /* 표면 */
+  /* 표면 — 원래는 크림/오프화이트로 톤을 줬는데, 더 깔끔하게 보이도록 웹은 전부 흰색으로
+     맞췄다. 안드로이드 Compose 쪽 원래 값은 --cream #fffcec, --off-white #f8f6ef 였다. */
   --white: #ffffff;
-  --cream: #fffcec;
+  --cream: #ffffff;
   --mint: #e9f2e4;
-  --off-white: #f8f6ef;
+  --off-white: #ffffff;
   --border: #e3e3e3;
+  /* 바텀시트 전용 — 아주 옅은 노란색. --yellow(#ffc42f)를 배경 전체에 쓰기엔 너무 진해서
+     따로 뺐다. */
+  --pale-yellow: #fffbe8;
 
   /* 글자 */
   --text-primary: #2b2e24;
   --text-secondary: #7a7e70;
   --text-tertiary: #abafa2;
 
-  /* 모서리 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* 모서리 — 전보다 덜 둥글게(더 깔끔하게) 웹에서만 조정. 안드로이드 Compose 쪽 원래 값은
+     8/12/16/20 이었으니, 두 클라이언트를 다시 맞추려면 그쪽도 같이 바꿔야 한다. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
   --radius-full: 999px;
 
   /* 간격 */

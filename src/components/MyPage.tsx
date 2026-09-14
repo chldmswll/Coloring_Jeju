@@ -1,20 +1,17 @@
 import { useState } from 'react'
 import type { User } from 'firebase/auth'
 import { logOut, updateDisplayName } from '../firebase/auth'
-import { usePieces } from '../store/pieces'
-import { useSavedSpots } from '../store/savedSpots'
+import type { TripSpot } from '../types'
 
-/** 마이페이지 — 프로필과 이번 여행의 숫자들, 그리고 로그아웃. */
-export function MyPage({ user }: { user: User }) {
-  const saved = useSavedSpots()
-  const pieces = usePieces()
+/** 마이페이지 — 프로필과 모든 여행을 합친 숫자들, 그리고 로그아웃. */
+export function MyPage({ user, allSpots }: { user: User; allSpots: TripSpot[] }) {
   const [name, setName] = useState(user.displayName ?? '')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   const displayName = user.displayName || user.email?.split('@')[0] || '여행자'
-  const verified = saved.filter((s) => s.verifiedColor).length
+  const verified = allSpots.filter((s) => s.verifiedColor).length
 
   async function save() {
     setBusy(true)
@@ -57,7 +54,7 @@ export function MyPage({ user }: { user: User }) {
 
       <div className="stats">
         <div className="stat">
-          <p className="t-display">{saved.length}</p>
+          <p className="t-display">{allSpots.length}</p>
           <p className="t-caption stamp__sub">담은 여행지</p>
         </div>
         <div className="stat">
@@ -65,7 +62,7 @@ export function MyPage({ user }: { user: User }) {
           <p className="t-caption stamp__sub">인증 완료</p>
         </div>
         <div className="stat">
-          <p className="t-display">{pieces.length}</p>
+          <p className="t-display">{verified}</p>
           <p className="t-caption stamp__sub">모은 조각</p>
         </div>
       </div>

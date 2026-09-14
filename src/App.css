@@ -10,6 +10,14 @@
 .app-header {
   padding: var(--space-2xl) var(--space-xl) var(--space-lg);
   background: var(--cream);
+  /* 배경이 본문과 같은 흰색이 되면서 색으로는 구분이 안 되니, 옅은 선 하나로만 나눈다. */
+  border-bottom: 1px solid var(--border);
+}
+.app-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
 }
 .app-header h1 {
   margin: 0;
@@ -79,6 +87,23 @@
   flex-direction: column;
   gap: var(--space-md);
 }
+/* 미완료(왼쪽) · 완료(오른쪽)를 세로선으로 나눠 따로 둔다 */
+.stamps-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+.stamps-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.stamps-column--done {
+  border-left: 1.5px solid var(--border);
+  padding-left: var(--space-lg);
+}
 .stamp {
   display: flex;
   align-items: center;
@@ -88,10 +113,8 @@
   border-radius: var(--radius-md);
   background: var(--white);
 }
-.stamp.is-done {
-  background: var(--mint);
-  border-color: var(--primary);
-}
+/* is-done 일 때 테두리/배경은 그 장소에서 뽑은 색으로 JSX 인라인 style 이 직접 넣는다
+   (색이 스탬프마다 달라서 고정 클래스로는 못 함) */
 .stamp__mark {
   display: grid;
   place-items: center;
@@ -100,8 +123,13 @@
   flex: none;
   border-radius: var(--radius-sm);
   background: var(--off-white);
-  color: var(--white);
-  font-weight: 700;
+  font-size: 18px;
+  overflow: hidden;
+}
+.stamp__mark-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .stamp p {
   margin: 0;
@@ -116,6 +144,7 @@
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 10;
   width: min(456px, calc(100% - 24px));
   display: flex;
   padding: var(--space-md);
@@ -151,6 +180,7 @@
 .sheet-scrim {
   position: fixed;
   inset: 0;
+  z-index: 50;
   background: rgba(43, 46, 36, 0.45);
   display: flex;
   align-items: flex-end;
@@ -162,7 +192,7 @@
   overflow-y: auto;
   padding: var(--space-md) var(--space-xl) var(--space-2xl);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  background: var(--cream);
+  background: var(--pale-yellow);
 }
 .sheet__handle {
   width: 48px;
@@ -353,7 +383,8 @@
   border-color: var(--yellow);
   border-width: 2px;
 }
-.stamp {
+/* 완료된 건 눌러도 아무 일도 안 일어나서 손가락 커서를 안 준다 */
+.stamp:not(.is-done) {
   cursor: pointer;
 }
 .progress {
@@ -402,6 +433,10 @@
 .swatch.is-picked {
   border-color: var(--forest);
 }
+.verify__caption {
+  resize: vertical;
+  min-height: 44px;
+}
 .verify__actions {
   display: flex;
   gap: var(--space-md);
@@ -419,7 +454,7 @@
 }
 .piece {
   padding: var(--space-md);
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--teal-light);
   border-radius: var(--radius-lg);
   background: var(--white);
 }
@@ -485,7 +520,7 @@
   justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-lg);
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--yellow);
   border-radius: var(--radius-lg);
   background: var(--white);
   text-align: left;
@@ -557,6 +592,15 @@
   background: var(--white);
   text-align: center;
 }
+.stat:nth-child(1) {
+  border-color: var(--teal-light);
+}
+.stat:nth-child(2) {
+  border-color: var(--pink);
+}
+.stat:nth-child(3) {
+  border-color: var(--orange);
+}
 .stat p {
   margin: 0;
 }
@@ -567,4 +611,288 @@
 /* 탭이 5개가 되면서 글자가 좁아진다 */
 .tabbar__item {
   min-width: 0;
+}
+
+/* 홈 화면의 여행 선택 드롭다운 (추천 지도 / 여행별 지도) */
+/* 헤더 안의 여행 선택 드롭다운 — 모든 탭에서 보인다 */
+/* 홈의 "추천 지도/여행 지도" 활성 버튼과 똑같은 색(mint 배경 + 진초록 글자)으로 맞춘다.
+   네이티브 화살표는 두께를 못 바꿔서 appearance:none 으로 지우고 직접 그린 굵은 화살표를 쓴다. */
+.trip-select {
+  flex: none;
+  padding: 6px 26px 6px var(--space-md);
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--mint);
+  color: var(--primary-deepest);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f5c30' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 13px;
+}
+
+/* 여행 만들기 폼에서 시작일·종료일 입력을 나란히 둔다 */
+.group__row input[type='date'] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 앨범 탭 상단 2단 버튼 — 왼쪽 여행 추가, 오른쪽 코드 입력. 둘 다 눌러야 팝업이 뜬다. */
+.album-actions {
+  display: flex;
+  gap: var(--space-md);
+}
+.album-actions > * {
+  flex: 1;
+  text-align: center;
+}
+
+/* 확인 팝업 본문 */
+.confirm-modal__body {
+  margin: var(--space-md) 0 0;
+  color: var(--text-secondary);
+}
+
+/* 그룹 여행 생성 직후 초대 코드 카드 */
+.invite-card {
+  background: var(--mint);
+}
+.invite-card__code {
+  letter-spacing: 4px;
+  color: var(--primary-deepest);
+}
+
+/* 가운데 뜨는 팝업(모달) — 바텀시트와 달리 화면 중앙에 뜨고 오른쪽 위 X로 닫는다 */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: rgba(43, 46, 36, 0.45);
+}
+.modal {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  background: var(--cream);
+}
+.modal h2 {
+  margin: 0;
+  padding-right: var(--space-xl);
+}
+.modal__close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  background: var(--white);
+}
+
+/* 새 여행 만들기 팝업 — 줄(세그먼트/이름/날짜/버튼)이 여러 개라 세로 간격을 직접 준다 */
+.trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+.trip-form .search__input {
+  margin-top: 0;
+}
+
+/* 조각모음 — 여행별 앨범 */
+.albums {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+.album-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.album-divider {
+  width: 100%;
+  border: none;
+  border-top: 1.5px solid var(--border);
+}
+.album__head {
+  margin-bottom: var(--space-md);
+}
+.album__head p {
+  margin: 0;
+}
+
+/* 조각모음 목록의 앨범(폴더) 카드 — 표지 사진 + 이름/기간 */
+.album-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.album-card__cover {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--mint);
+}
+
+/* 여행 멤버 목록 — 개인/그룹 상관없이 항상 보인다 */
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.member-row__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--mint);
+  color: var(--primary-deepest);
+  font-size: 14px;
+  font-weight: 700;
+}
+.member-row__badge {
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--mint);
+  color: var(--primary-deepest);
+}
+
+/* 인증 타임라인 — 세로 줄기에 점을 찍고, 그 옆에 폴라로이드 카드를 하나씩 매단다 */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  position: relative;
+  padding-left: var(--space-xl);
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 4px;
+  width: 2px;
+  background: var(--border);
+}
+.timeline__item {
+  position: relative;
+}
+.timeline__item::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: calc(-1 * var(--space-xl) + 1px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid var(--cream);
+}
+.timeline__meta {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+}
+
+/* 폴라로이드 사진 카드 — 배경은 그 장소에서 뽑은 색(인라인 style로 지정), 사진은 원본 비율 그대로 */
+.polaroid {
+  display: inline-block;
+  max-width: 260px;
+  padding: var(--space-sm) var(--space-sm) var(--space-lg);
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-raised);
+}
+.polaroid img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 2px;
+}
+/* 사진이 없을 때만 쓰는 자리표시자 — <span>은 원본 비율이 없으니 정사각형으로 대체한다 */
+.polaroid__empty {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 2px;
+}
+.polaroid__place {
+  margin: var(--space-sm) 0 0;
+  text-align: center;
+}
+.polaroid__caption {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* 앨범 탭 타임라인 — 폴라로이드는 작게, 장소 이름·문구는 옆에 메모처럼 붙인다 */
+.journal-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+/* 세로를 고정하고 폭은 사진 자체 비율에 맡긴다 — 가로로 긴 사진이 세로 사진보다 자연스럽게
+   더 넓게(대략 1.5배 안팎) 보인다. 자르지도, 여백을 만들지도 않는다. */
+.journal-entry .polaroid {
+  flex: none;
+  max-width: 220px;
+  /* 흰색/그라데이션 테두리(폴라로이드 프레임) 없이 사진이 카드 전체를 채운다 */
+  padding: 0;
+  overflow: hidden;
+}
+/* 실제 폭/높이는 PieceTimeline.tsx 가 사진을 읽어본 뒤 짧은 변을 100px 로 고정해 인라인
+   style 로 넣어준다 — 세로 사진은 폭 100px, 가로 사진은 높이 100px. 여긴 상한선만 둔다. */
+.journal-entry .polaroid img {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: var(--radius-sm);
+}
+/* 사진이 없을 때만 쓰는 자리표시자 — <span>은 원본 비율이 없으니 정사각형으로 대체한다 */
+.journal-entry .polaroid .polaroid__empty {
+  display: block;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-sm);
+}
+.journal-note {
+  flex: 1;
+  min-width: 0;
+  padding-top: var(--space-sm);
+}
+.journal-note__place {
+  margin: 0;
+  font-size: 17px;
+}
+.journal-note__caption {
+  margin: var(--space-sm) 0 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 15px;
 }
