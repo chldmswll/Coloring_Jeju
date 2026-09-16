@@ -39,21 +39,9 @@
   color: var(--text-secondary);
 }
 
-/* 무지개 */
 .rainbow__label {
   margin: 0 0 var(--space-md);
   color: var(--text-secondary);
-}
-.rainbow {
-  display: flex;
-  gap: var(--space-md);
-}
-.rainbow__slot {
-  flex: 1;
-  aspect-ratio: 1;
-  border: 2px solid var(--text-tertiary);
-  border-radius: 50%;
-  background: transparent;
 }
 
 /* 세그먼트 컨트롤 */
@@ -87,55 +75,101 @@
   flex-direction: column;
   gap: var(--space-md);
 }
-/* 미완료(왼쪽) · 완료(오른쪽)를 세로선으로 나눠 따로 둔다 */
-.stamps-columns {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-lg);
-}
-.stamps-column {
-  flex: 1;
-  min-width: 0;
+/* 한 줄로 쭉 이어진 목록 — 미완료가 위, 완료가 아래로만 자연스럽게 흐른다(칸을 나누지 않음). */
+.stamps-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-}
-.stamps-column--done {
-  border-left: 1.5px solid var(--border);
-  padding-left: var(--space-lg);
+  gap: var(--space-sm);
 }
 .stamp {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
-  padding: 14px var(--space-lg);
+  gap: var(--space-md);
+  padding: 10px var(--space-lg);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--white);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
-/* is-done 일 때 테두리/배경은 그 장소에서 뽑은 색으로 JSX 인라인 style 이 직접 넣는다
-   (색이 스탬프마다 달라서 고정 클래스로는 못 함) */
+.stamp:not(.is-done) {
+  cursor: pointer;
+}
+.stamp:not(.is-done):active {
+  box-shadow: var(--shadow-card);
+}
+.stamp.is-done {
+  /* 완료된 곳은 카드 배경을 물들이지 않고, 살짝 옅은 회색 배경으로만 차분하게 구분한다. */
+  background: var(--off-white);
+}
+.stamp__mark-wrap {
+  position: relative;
+  flex: none;
+}
 .stamp__mark {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: var(--radius-sm);
+  width: 44px;
+  height: 44px;
+  border: 3px solid transparent;
+  border-radius: var(--radius-md);
   background: var(--off-white);
   font-size: 18px;
   overflow: hidden;
 }
+/* 뽑은 색은 점이 아니라 사진 테두리 자체로 두른다 — 팜플렛의 폴라로이드 테두리와 같은 표현. */
 .stamp__mark-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* 인증 전엔 장소 원본 사진을 흑백으로 — 인증하면 filter 가 빠지고 그때 찍은 사진이 컬러로 뜬다. */
+.stamp__mark-photo.is-grayscale {
+  filter: grayscale(1);
+}
+/* 완료 체크 배지 — 색과 상관없이 항상 같은 초록으로, "확실히 끝났다"는 느낌을 준다. */
+.stamp__mark-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid var(--white);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.stamp__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .stamp p {
   margin: 0;
 }
 .stamp__sub {
   color: var(--text-secondary);
+}
+/* 완료 배지 — 진한 초록 칩으로, 회색 텍스트보다 훨씬 "끝났다"는 느낌이 분명하다. */
+.stamp__done {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 700;
+  font-size: var(--font-caption-size);
+}
+.stamp__chevron {
+  flex: none;
+  color: var(--text-tertiary);
+  font-size: 18px;
 }
 
 /* 하단 탭바 */
@@ -158,22 +192,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   color: var(--text-tertiary);
 }
 .tabbar__item.is-active {
   color: var(--primary-deepest);
   font-weight: 700;
 }
-.tabbar__dot {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--border);
-  border-radius: 50%;
+.tabbar__icon {
+  width: 24px;
+  height: 24px;
+  transition: transform 120ms ease;
 }
-.tabbar__item.is-active .tabbar__dot {
-  background: var(--yellow);
-  border-color: var(--yellow);
+.tabbar__item.is-active .tabbar__icon {
+  transform: translateY(-1px) scale(1.05);
 }
 
 /* 장소 상세 시트 */
@@ -223,6 +255,104 @@
 }
 .sheet__desc {
   margin: var(--space-md) 0 0;
+}
+
+/* "함께 가면 좋은 곳" 시트 — 장소를 담은 직후 뜬다 */
+.related__done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--primary-deepest);
+}
+.related__done-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+}
+.related__title {
+  margin: var(--space-lg) 0 0;
+}
+.related__lead {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-secondary);
+}
+.related__list {
+  list-style: none;
+  margin: var(--space-lg) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.related__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 10px var(--space-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+}
+.related__rank {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--orange);
+}
+.related__thumb {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--mint);
+}
+.related__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.related__name,
+.related__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.related__meta {
+  color: var(--text-secondary);
+}
+.related__add {
+  flex: none;
+  padding: 7px 12px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 700;
+}
+.related__add.is-added {
+  background: var(--mint);
+  color: var(--primary-deepest);
+  cursor: default;
+}
+.related__source {
+  margin: var(--space-md) 0 0;
+  text-align: right;
+  color: var(--text-tertiary);
+}
+.related__close {
+  width: 100%;
+  margin-top: var(--space-lg);
 }
 
 .pill {
@@ -383,10 +513,6 @@
   border-color: var(--yellow);
   border-width: 2px;
 }
-/* 완료된 건 눌러도 아무 일도 안 일어나서 손가락 커서를 안 준다 */
-.stamp:not(.is-done) {
-  cursor: pointer;
-}
 .progress {
   height: 8px;
   border-radius: var(--radius-full);
@@ -444,6 +570,21 @@
 }
 .verify__actions > * {
   flex: 1;
+}
+
+/* 조각모음 — 팜플렛(콜라주) */
+.pamphlet {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-lg);
+}
+.pamphlet__canvas {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: var(--white);
 }
 
 /* 조각모음 */
@@ -737,19 +878,52 @@
   margin: 0;
 }
 
-/* 조각모음 목록의 앨범(폴더) 카드 — 표지 사진 + 이름/기간 */
+/* 조각모음 목록의 앨범(폴더) 카드 — 콜라주 미리보기 + 이름/기간 + "팜플렛 만들기" 버튼 */
+.album-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1.5px solid var(--yellow);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+}
 .album-card__row {
   display: flex;
   align-items: center;
   gap: var(--space-md);
   min-width: 0;
 }
-.album-card__cover {
+.album-card__info {
+  min-width: 0;
+}
+.album-card__info p {
+  margin: 0;
+}
+.album-card__make {
+  align-self: flex-start;
+}
+
+/* 앨범 카드에 얹는 콜라주 미리보기 — 실제 팜플렛과 같은 비율로 축소해서 보여준다 */
+.pamphlet-preview {
   flex: none;
-  width: 48px;
-  height: 48px;
+  width: 76px;
+  aspect-ratio: 940 / 1054;
   border-radius: var(--radius-md);
-  object-fit: cover;
+  overflow: hidden;
+  background: var(--mint);
+  box-shadow: var(--shadow-card);
+}
+.pamphlet-preview__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pamphlet-preview--empty {
+  flex: none;
+  width: 76px;
+  aspect-ratio: 940 / 1054;
+  border-radius: var(--radius-md);
   background: var(--mint);
 }
 

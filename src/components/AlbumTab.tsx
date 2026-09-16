@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { User } from 'firebase/auth'
-import {
-  createTrip,
-  joinTripByCode,
-  leaveTrip,
-  tripStatus,
-  watchTripSpots,
-} from '../firebase/trips'
+import { leaveTrip, tripStatus, watchTripSpots } from '../firebase/trips'
 import { PieceTimeline } from './PieceTimeline'
 import type { Trip, TripKind, TripSpot } from '../types'
 
@@ -16,10 +10,9 @@ function today(): string {
 }
 
 /**
- * 앨범 — 여행을 만들고 참여하는 곳. (예전 "그룹" 탭 자리)
+ * 앨범 — 만든/참여한 여행을 모아보는 곳. (예전 "그룹" 탭 자리)
  *
- * 여행은 개인(혼자) 또는 그룹(초대코드로 친구와 같이 담기)으로 만든다. "새 여행 만들기" 버튼을
- * 누르면 팝업(바텀시트)이 뜨고, 거기서 이름·개인/그룹·기간을 입력해 "여행 시작하기"로 만든다.
+ * 여행 "만들기·코드로 참여하기"는 홈 탭으로 옮겨졌다 — 여기는 목록·상세만 보여준다.
  * 목록은 진행중·예정과 다녀옴으로 나눠서 보여준다 — 종료일이 지나면 자동으로 다녀옴으로
  * 분류된다(tripStatus).
  *
@@ -28,23 +21,14 @@ function today(): string {
  */
 export function AlbumTab({ user, trips }: { user: User; trips: Trip[] }) {
   const [openId, setOpenId] = useState<string | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
-  const [showJoin, setShowJoin] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [justCreated, setJustCreated] = useState<Trip | null>(null)
-
-  const displayName = user.displayName || user.email?.split('@')[0] || '여행자'
 
   async function run(action: () => Promise<unknown>) {
-    setBusy(true)
     setError(null)
     try {
       await action()
     } catch (e) {
       setError(e instanceof Error ? e.message : '여행 처리 중 오류가 발생했어요.')
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -72,43 +56,13 @@ export function AlbumTab({ user, trips }: { user: User; trips: Trip[] }) {
 
   return (
     <section className="group">
-      <div className="album-actions">
-        <button className="btn-primary t-button" onClick={() => setShowCreate(true)}>
-          + 여행 추가
-        </button>
-        <button className="pill t-button album-actions__code" onClick={() => setShowJoin(true)}>
-          코드 입력
-        </button>
-      </div>
-
-      {justCreated && (
-        <div className="group__form invite-card">
-          <h2 className="t-title">초대 코드가 발급됐어요</h2>
-          <p className="t-caption">친구에게 이 코드를 알려주면 같이 담을 수 있어요.</p>
-          <div className="group__row">
-            <span className="t-display invite-card__code">{justCreated.inviteCode}</span>
-            <button
-              className="pill t-subtitle"
-              onClick={() => {
-                void navigator.clipboard?.writeText(justCreated.inviteCode ?? '')
-              }}
-            >
-              복사
-            </button>
-          </div>
-          <button className="t-caption group__back" onClick={() => setJustCreated(null)}>
-            닫기
-          </button>
-        </div>
-      )}
-
       {error && <p className="t-caption search__error">{error}</p>}
 
       {trips.length === 0 ? (
         <div className="empty t-body">
           아직 만든 여행이 없어요.
           <br />
-          여행을 만들거나 친구의 코드로 참여해보세요.
+          홈에서 여행을 만들거나 친구의 코드로 참여해보세요.
         </div>
       ) : (
         <>
@@ -116,43 +70,12 @@ export function AlbumTab({ user, trips }: { user: User; trips: Trip[] }) {
           <TripList title="다녀옴" trips={past} onOpen={setOpenId} />
         </>
       )}
-
-      {showCreate && (
-        <CreateTripSheet
-          busy={busy}
-          onClose={() => setShowCreate(false)}
-          onCreate={(input) =>
-            void run(async () => {
-              const trip = await createTrip({
-                ...input,
-                ownerUid: user.uid,
-                ownerName: displayName,
-              })
-              setShowCreate(false)
-              if (trip.kind === 'group') setJustCreated(trip)
-            })
-          }
-        />
-      )}
-
-      {showJoin && (
-        <JoinTripModal
-          busy={busy}
-          onClose={() => setShowJoin(false)}
-          onJoin={(code) =>
-            void run(async () => {
-              await joinTripByCode(code, user.uid, displayName)
-              setShowJoin(false)
-            })
-          }
-        />
-      )}
     </section>
   )
 }
 
-/** "코드 입력" 팝업 — 초대 코드로 그룹 여행에 참여한다. */
-function JoinTripModal({
+/** "코드 입력" 팝업 — 초대 코드로 그룹 여행에 참여한다. 홈 탭에서 쓴다. */
+export function JoinTripModal({
   busy,
   onClose,
   onJoin,
@@ -202,7 +125,7 @@ function JoinTripModal({
  * 시작할 수는 없으니까. `min` 속성으로 달력에서부터 막고, 그래도 잘못 들어오면(직접 타이핑 등)
  * 제출 시 다시 한번 검사해 오류 메시지를 보여준다.
  */
-function CreateTripSheet({
+export function CreateTripSheet({
   busy,
   onClose,
   onCreate,

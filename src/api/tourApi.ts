@@ -94,9 +94,13 @@ function onlyAttractions(spots: TourSpot[]): TourSpot[] {
   return spots.filter((s) => ATTRACTION_TYPE_IDS.has(s.contentTypeId))
 }
 
-/** 제주 지역 목록 조회. 검색어가 비었을 때 기본으로 보여줄 목록. */
+/**
+ * 제주 지역 목록 조회. 검색어가 비었을 때 기본으로 보여줄 목록.
+ * KorService2 는 옛 지역코드(areaCode)가 비어 있는 장소가 많다(성산일출봉도 그렇다) — 법정동
+ * 코드(lDongRegnCd, 제주 50)로 불러야 제주 전체에서 뽑힌다.
+ */
 export async function areaBasedList(contentTypeId?: string | null): Promise<TourSpot[]> {
-  const params: Record<string, string> = { numOfRows: '30', pageNo: '1', areaCode: '39' }
+  const params: Record<string, string> = { numOfRows: '30', pageNo: '1', lDongRegnCd: '50' }
   if (contentTypeId) params.contentTypeId = contentTypeId
   return onlyAttractions(await call('areaBasedList2', params))
 }

@@ -1,5 +1,7 @@
 .map-frame {
-  width: 100%;
+  /* app-main 좌우 패딩을 뚫고 나가 화면 폭 그대로 채운다 — 세로 높이는 그대로 둔다. */
+  width: calc(100% + var(--space-xl) * 2);
+  margin: 0 calc(var(--space-xl) * -1);
   height: 320px;
   border-radius: var(--radius-xl);
   overflow: hidden;

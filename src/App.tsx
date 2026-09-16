@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AuthScreen } from './components/AuthScreen'
-import { AlbumTab } from './components/AlbumTab'
 import { MyPage } from './components/MyPage'
 import { useAuthUser } from './firebase/auth'
 import { detail } from './api/tourApi'
@@ -9,8 +8,15 @@ import { SearchSheet } from './components/SearchSheet'
 import { VerifySheet } from './components/VerifySheet'
 import recommendedSpots from './data/recommendedSpots.json'
 import { JejuMap, type MapPin } from './map/JejuMap'
+import { HomeIcon, StampIcon, PieceIcon, AlbumIcon, MyIcon } from './components/TabIcons'
+import { AlbumTab, CreateTripSheet, JoinTripModal } from './components/AlbumTab'
+import { Pamphlet, PamphletPreview } from './components/Pamphlet'
+import { RelatedSheet } from './components/RelatedSheet'
+import { relatedAttractions, type RelatedResult } from './api/relatedApi'
 import {
   addTripSpot,
+  createTrip,
+  joinTripByCode,
   removeTripSpot,
   tripStatus,
   watchAllTripSpots,
@@ -27,6 +33,14 @@ type MainTab = '홈' | '스탬프' | '조각' | '앨범' | '마이'
  * 어떤 여행이 "현재 작업 중인 여행"인지는 헤더의 드롭다운(전역)이 따로 정한다 — 그래서 추천 지도를
  * 보는 중에도 "추가하기"는 항상 그 여행에 들어간다. */
 type HomeMapView = '추천 지도' | '여행 지도'
+
+const TAB_ICON: Record<MainTab, typeof HomeIcon> = {
+  홈: HomeIcon,
+  스탬프: StampIcon,
+  조각: PieceIcon,
+  앨범: AlbumIcon,
+  마이: MyIcon,
+}
 
 /** 안정된 빈 배열 참조 — 매 렌더 새 배열을 만들면 이를 의존하는 useMemo가 무의미해진다. */
 const EMPTY_SPOTS: TripSpot[] = []
@@ -49,6 +63,35 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
   const [homeMapView, setHomeMapView] = useState<HomeMapView>('추천 지도')
   const [openSpot, setOpenSpot] = useState<TripSpot | null>(null)
   const [verifying, setVerifying] = useState<TripSpot | null>(null)
+  // "함께 가면 좋은 곳" — 담은 직후 추천을 먼저 받아보고, 하나라도 있을 때만 시트를 띄운다.
+  // 추천이 없는 장소는 아무 일도 없었던 것처럼 넘어간다.
+  const [related, setRelated] = useState<{
+    base: TripSpot
+    tripId: string
+    result: RelatedResult
+  } | null>(null)
+  const relatedRequest = useRef(0)
+
+  // 여행 만들기·코드로 참여하기 — 원래 앨범 탭에 있었지만, 여행을 시작하는 동작이라 홈으로 옮겼다.
+  const [showCreateTrip, setShowCreateTrip] = useState(false)
+  const [showJoinTrip, setShowJoinTrip] = useState(false)
+  const [tripActionBusy, setTripActionBusy] = useState(false)
+  const [tripActionError, setTripActionError] = useState<string | null>(null)
+  const [justCreatedTrip, setJustCreatedTrip] = useState<Trip | null>(null)
+  const displayName = user.displayName || user.email?.split('@')[0] || '여행자'
+
+  async function runTripAction(action: () => Promise<Trip>) {
+    setTripActionBusy(true)
+    setTripActionError(null)
+    try {
+      const trip = await action()
+      setSelectedTripId(trip.id)
+    } catch (e) {
+      setTripActionError(e instanceof Error ? e.message : '여행 처리 중 오류가 발생했어요.')
+    } finally {
+      setTripActionBusy(false)
+    }
+  }
 
   // 여행 목록 — 홈 드롭다운, 앨범 탭, 조각모음, 마이페이지가 전부 이 하나를 같이 본다.
   const [trips, setTrips] = useState<Trip[]>([])
@@ -129,6 +172,21 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
 
   const isOpenSaved = openSpot ? savedIds.has(openSpot.contentId) : false
 
+  function suggestRelated(base: TripSpot, tripId: string) {
+    // 인덱스 파일을 처음 받는 동안 다른 곳을 또 담으면, 마지막으로 담은 곳의 추천만 띄운다.
+    const token = ++relatedRequest.current
+    const exclude = new Set(savedIds)
+    exclude.add(base.contentId)
+    relatedAttractions(base.contentId, exclude)
+      .then((result) => {
+        if (token !== relatedRequest.current || !result || result.items.length === 0) return
+        setRelated({ base, tripId, result })
+      })
+      .catch(() => {
+        /* 추천은 덤이라, 못 받아와도 담기 자체는 이미 끝났으니 조용히 넘어간다 */
+      })
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -160,11 +218,40 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
       <main className="app-main">
         {mainTab === '홈' && (
           <>
-            {selectedTrip ? (
-              <RainbowRow saved={tripSpots} />
-            ) : (
-              <p className="t-caption app-hint">여행을 고르면 이번 여행의 무지개가 여기 보여요.</p>
+            <div className="album-actions">
+              <button className="btn-primary t-button" onClick={() => setShowCreateTrip(true)}>
+                + 여행 추가
+              </button>
+              <button
+                className="pill t-button album-actions__code"
+                onClick={() => setShowJoinTrip(true)}
+              >
+                코드 입력
+              </button>
+            </div>
+
+            {justCreatedTrip && (
+              <div className="group__form invite-card">
+                <h2 className="t-title">초대 코드가 발급됐어요</h2>
+                <p className="t-caption">친구에게 이 코드를 알려주면 같이 담을 수 있어요.</p>
+                <div className="group__row">
+                  <span className="t-display invite-card__code">{justCreatedTrip.inviteCode}</span>
+                  <button
+                    className="pill t-subtitle"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(justCreatedTrip.inviteCode ?? '')
+                    }}
+                  >
+                    복사
+                  </button>
+                </div>
+                <button className="t-caption group__back" onClick={() => setJustCreatedTrip(null)}>
+                  닫기
+                </button>
+              </div>
             )}
+
+            {tripActionError && <p className="t-caption search__error">{tripActionError}</p>}
 
             <div className="segmented" role="tablist">
               {(['추천 지도', '여행 지도'] as HomeMapView[]).map((view) => (
@@ -184,7 +271,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
               <div className="empty t-body">
                 여행을 선택해주세요.
                 <br />
-                위에서 여행을 고르거나 앨범 탭에서 새로 만들어보세요.
+                위에서 여행을 고르거나 "+ 여행 추가"로 새로 만들어보세요.
               </div>
             ) : (
               <JejuMap pins={pins} onPinClick={openFromPin} />
@@ -210,7 +297,10 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
                       if (savedIds.has(spot.contentId)) void removeTripSpot(selectedTrip.id, spot.contentId)
                       else {
                         const s = fromTourSpot(spot, user.uid)
-                        if (s) void addTripSpot(selectedTrip.id, s)
+                        if (s) {
+                          void addTripSpot(selectedTrip.id, s)
+                          suggestRelated(s, selectedTrip.id)
+                        }
                       }
                     }}
                     onOpen={(spot) => {
@@ -221,10 +311,43 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
                 </>
               ) : (
                 <p className="t-caption app-hint">
-                  여행을 선택하거나 앨범 탭에서 새 여행을 만들어주세요.
+                  여행을 선택하거나 위의 "+ 여행 추가"로 새 여행을 만들어주세요.
                 </p>
               )}
             </div>
+
+            {showCreateTrip && (
+              <CreateTripSheet
+                busy={tripActionBusy}
+                onClose={() => setShowCreateTrip(false)}
+                onCreate={(input) =>
+                  void runTripAction(async () => {
+                    const trip = await createTrip({
+                      ...input,
+                      ownerUid: user.uid,
+                      ownerName: displayName,
+                    })
+                    setShowCreateTrip(false)
+                    if (trip.kind === 'group') setJustCreatedTrip(trip)
+                    return trip
+                  })
+                }
+              />
+            )}
+
+            {showJoinTrip && (
+              <JoinTripModal
+                busy={tripActionBusy}
+                onClose={() => setShowJoinTrip(false)}
+                onJoin={(code) =>
+                  void runTripAction(async () => {
+                    const trip = await joinTripByCode(code, user.uid, displayName)
+                    setShowJoinTrip(false)
+                    return trip
+                  })
+                }
+              />
+            )}
           </>
         )}
 
@@ -235,7 +358,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             <div className="empty t-body">
               여행을 선택해주세요.
               <br />
-              홈에서 여행을 고르거나 앨범 탭에서 새로 만들어보세요.
+              홈에서 여행을 고르거나 "+ 여행 추가"로 새로 만들어보세요.
             </div>
           ))}
 
@@ -245,16 +368,19 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
       </main>
 
       <nav className="tabbar">
-        {(['홈', '스탬프', '조각', '앨범', '마이'] as MainTab[]).map((tab) => (
-          <button
-            key={tab}
-            className={'tabbar__item t-caption' + (mainTab === tab ? ' is-active' : '')}
-            onClick={() => setMainTab(tab)}
-          >
-            <span className="tabbar__dot" />
-            {tab}
-          </button>
-        ))}
+        {(['홈', '스탬프', '조각', '앨범', '마이'] as MainTab[]).map((tab) => {
+          const TabIcon = TAB_ICON[tab]
+          return (
+            <button
+              key={tab}
+              className={'tabbar__item t-caption' + (mainTab === tab ? ' is-active' : '')}
+              onClick={() => setMainTab(tab)}
+            >
+              <TabIcon className="tabbar__icon" />
+              {tab}
+            </button>
+          )
+        })}
       </nav>
 
       {openSpot && (
@@ -265,7 +391,10 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             selectedTrip
               ? () => {
                   if (isOpenSaved) void removeTripSpot(selectedTrip.id, openSpot.contentId)
-                  else void addTripSpot(selectedTrip.id, openSpot)
+                  else {
+                    void addTripSpot(selectedTrip.id, openSpot)
+                    suggestRelated(openSpot, selectedTrip.id)
+                  }
                   setOpenSpot(null)
                 }
               : null
@@ -274,35 +403,23 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
         />
       )}
 
+      {related && (
+        <RelatedSheet
+          base={related.base}
+          result={related.result}
+          savedIds={new Set((spotsByTrip[related.tripId] ?? []).map((s) => s.contentId))}
+          onAdd={(spot) => {
+            const s = fromTourSpot(spot, user.uid)
+            if (s) void addTripSpot(related.tripId, s)
+          }}
+          onClose={() => setRelated(null)}
+        />
+      )}
+
       {verifying && selectedTrip && (
         <VerifySheet tripId={selectedTrip.id} spot={verifying} onClose={() => setVerifying(null)} />
       )}
     </div>
-  )
-}
-
-/** 무지개 6칸 — 인증해서 색을 얻은 순서대로 채운다. */
-function RainbowRow({ saved }: { saved: TripSpot[] }) {
-  const earned = [...saved]
-    .sort((a, b) => (a.verifiedAt ?? 0) - (b.verifiedAt ?? 0))
-    .map((s) => s.verifiedColor)
-    .filter((c): c is string => c !== null)
-
-  return (
-    <section>
-      <p className="t-subtitle rainbow__label">
-        이번 여행의 무지개 · 6색 중 {Math.min(earned.length, 6)}색 수집
-      </p>
-      <div className="rainbow">
-        {Array.from({ length: 6 }, (_, i) => (
-          <span
-            key={i}
-            className="rainbow__slot"
-            style={earned[i] ? { background: earned[i], borderColor: earned[i] } : undefined}
-          />
-        ))}
-      </div>
-    </section>
   )
 }
 
@@ -329,8 +446,9 @@ function StampList({
     )
   }
 
-  const notDone = saved.filter((s) => !s.verifiedColor)
-  const doneSpots = saved.filter((s) => s.verifiedColor)
+  // 완료된 곳은 이미 끝난 결과라 아래로, 아직 할 일(미완료)이 위로 오게 — 굳이 칸을 나누지
+  // 않고 한 줄로 쭉 이어야 좁은 화면에서 각 칸이 찌그러지지 않는다.
+  const ordered = [...saved].sort((a, b) => Number(Boolean(a.verifiedColor)) - Number(Boolean(b.verifiedColor)))
 
   return (
     <section className="stamps">
@@ -349,25 +467,20 @@ function StampList({
         <span style={{ width: `${(done / saved.length) * 100}%` }} />
       </div>
 
-      {/* 완료된 건 세로선으로 나눠 따로 둔다 — 미완료는 눌러서 인증하러 가는 목록, 완료는 결과 모음. */}
-      <div className="stamps-columns">
-        <div className="stamps-column">
-          {notDone.map((s) => (
+      <div className="stamps-list">
+        {ordered.map((s) => {
+          const isDone = Boolean(s.verifiedColor)
+          return (
             <StampCard
               key={s.contentId}
               spot={s}
               selected={s.contentId === selectedId}
-              onClick={() => setSelectedId(s.contentId === selectedId ? null : s.contentId)}
+              onClick={
+                isDone ? undefined : () => setSelectedId(s.contentId === selectedId ? null : s.contentId)
+              }
             />
-          ))}
-        </div>
-        {doneSpots.length > 0 && (
-          <div className="stamps-column stamps-column--done">
-            {doneSpots.map((s) => (
-              <StampCard key={s.contentId} spot={s} selected={false} onClick={undefined} />
-            ))}
-          </div>
-        )}
+          )
+        })}
       </div>
     </section>
   )
@@ -386,25 +499,46 @@ function StampCard({
   return (
     <article
       className={'stamp' + (isDone ? ' is-done' : '') + (selected ? ' is-selected' : '')}
-      style={
-        isDone
-          ? {
-              borderColor: spot.verifiedColor!,
-              background: `color-mix(in srgb, ${spot.verifiedColor} 18%, white)`,
-            }
-          : undefined
-      }
       onClick={onClick}
     >
-      <span className="stamp__mark">
-        {isDone ? (
-          spot.photo && <img className="stamp__mark-photo" src={spot.photo} alt="" />
-        ) : (
-          <span aria-hidden="true">☁️</span>
+      <span className="stamp__mark-wrap">
+        {/* 뽑은 색은 이제 사진 테두리에 두른다 — 완료 표시는 따로 초록 체크 배지로 확실하게. */}
+        <span
+          className="stamp__mark"
+          style={isDone ? { borderColor: spot.verifiedColor! } : undefined}
+        >
+          {/* 인증 전엔 장소 원본 사진을 흑백으로, 인증하면 그때 찍은 사진을 컬러로 보여준다. */}
+          <StampPhoto src={spot.photo ?? spot.image} grayscale={!isDone} />
+        </span>
+        {isDone && (
+          <span className="stamp__mark-badge" aria-hidden="true">
+            ✓
+          </span>
         )}
       </span>
       <p className="t-title stamp__name">{spot.title}</p>
+      {isDone ? (
+        <span className="stamp__done">완료</span>
+      ) : (
+        <span className="stamp__chevron" aria-hidden="true">
+          ›
+        </span>
+      )}
     </article>
+  )
+}
+
+/** 사진이 없거나 로드에 실패하면 깨진 이미지 아이콘 대신 구름 이모지로 대신한다. */
+function StampPhoto({ src, grayscale }: { src: string | null; grayscale: boolean }) {
+  const [broken, setBroken] = useState(false)
+  if (!src || broken) return <span aria-hidden="true">☁️</span>
+  return (
+    <img
+      className={'stamp__mark-photo' + (grayscale ? ' is-grayscale' : '')}
+      src={src}
+      alt=""
+      onError={() => setBroken(true)}
+    />
   )
 }
 
@@ -432,7 +566,7 @@ function PieceGrid({
       <div className="empty t-body">
         아직 만든 여행이 없어요.
         <br />
-        앨범 탭에서 여행을 만들면 여기 앨범으로 쌓여요.
+        홈에서 여행을 만들면 여기 앨범으로 쌓여요.
       </div>
     )
   }
@@ -466,27 +600,24 @@ function PieceGrid({
           <div className="group__list">
             {group.trips.map((trip) => {
               const pieces = (spotsByTrip[trip.id] ?? []).filter((s) => s.verifiedColor)
-              const cover = [...pieces].sort((a, b) => (b.verifiedAt ?? 0) - (a.verifiedAt ?? 0))[0]
               return (
-                <button key={trip.id} className="group-card" onClick={() => setOpenTripId(trip.id)}>
+                <div key={trip.id} className="album-card">
                   <div className="album-card__row">
-                    {cover?.photo ? (
-                      <img className="album-card__cover" src={cover.photo} alt="" />
-                    ) : (
-                      <span
-                        className="album-card__cover"
-                        style={cover ? { background: cover.verifiedColor! } : undefined}
-                      />
-                    )}
-                    <div>
+                    <PamphletPreview trip={trip} pieces={pieces} />
+                    <div className="album-card__info">
                       <p className="t-subtitle">{trip.name}</p>
                       <p className="t-caption group-card__sub">
                         {trip.startDate} ~ {trip.endDate}
                       </p>
                     </div>
                   </div>
-                  <span className="t-caption group-card__go">›</span>
-                </button>
+                  <button
+                    className="pill t-subtitle album-card__make"
+                    onClick={() => setOpenTripId(trip.id)}
+                  >
+                    팜플렛 만들기
+                  </button>
+                </div>
               )
             })}
           </div>
@@ -496,23 +627,11 @@ function PieceGrid({
   )
 }
 
-/** ms 타임스탬프를 '2026.09.20', '14:32' 로 나눠 돌려준다. */
-function formatDateTime(ts: number | null): { date: string; time: string } {
-  if (!ts) return { date: '', time: '' }
-  const d = new Date(ts)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return {
-    date: `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-  }
-}
-
 /**
- * 앨범(폴더) 하나를 열었을 때 — 인증한 사진만 시간 순서대로 타임라인으로 보여준다.
+ * 앨범(폴더) 하나를 열었을 때 — 인증한 사진들을 콜라주 한 장(팜플렛)으로 자동으로 모아 보여준다.
  *
- * 앨범 탭(AlbumTab)의 여행 상세에도 비슷한 타임라인이 있지만 거기는 감성적인 저널 스타일로
- * 따로 디자인하기로 했으므로, 여기는 이 화면 전용으로 독립된 컴포넌트다 — 나중에 서로 다르게
- * 바뀌어도 간섭하지 않는다.
+ * 앨범 탭(AlbumTab)의 여행 상세에는 시간순 타임라인이 따로 있다 — 조각모음은 지나온 여행을
+ * "기록"이 아니라 "한 장의 결과물"로 남기는 화면이라 의도적으로 다르게 뒀다.
  */
 function PieceAlbumDetail({
   trip,
@@ -523,8 +642,6 @@ function PieceAlbumDetail({
   pieces: TripSpot[]
   onBack: () => void
 }) {
-  const ordered = [...pieces].sort((a, b) => (a.verifiedAt ?? 0) - (b.verifiedAt ?? 0))
-
   return (
     <section className="album">
       <button className="t-subtitle group__back" onClick={onBack}>
@@ -537,37 +654,7 @@ function PieceAlbumDetail({
         </p>
       </div>
 
-      {ordered.length === 0 ? (
-        <div className="empty t-body">아직 인증한 곳이 없어요.</div>
-      ) : (
-        <div className="timeline">
-          {ordered.map((p, i) => {
-            const { date, time } = formatDateTime(p.verifiedAt)
-            return (
-              <article key={p.contentId} className="timeline__item">
-                <p className="t-caption timeline__meta">
-                  {date} · {time}
-                </p>
-                <div
-                  className="polaroid"
-                  style={{
-                    background: p.verifiedColor ?? undefined,
-                    transform: `rotate(${i % 2 === 0 ? -2 : 2}deg)`,
-                  }}
-                >
-                  {p.photo ? (
-                    <img src={p.photo} alt="" />
-                  ) : (
-                    <span className="polaroid__empty" style={{ background: p.verifiedColor! }} />
-                  )}
-                  <p className="t-subtitle polaroid__place">{p.title}</p>
-                  {p.caption && <p className="t-caption polaroid__caption">{p.caption}</p>}
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      )}
+      <Pamphlet trip={trip} pieces={pieces} />
     </section>
   )
 }
