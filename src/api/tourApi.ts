@@ -72,6 +72,14 @@ function toTourSpot(item: Record<string, string>): TourSpot {
 }
 
 async function call(op: string, params: Record<string, string>): Promise<TourSpot[]> {
+  return (await callPage(op, params)).spots
+}
+
+/** call 과 같지만 전체 건수도 돌려준다 — "더 보기"를 띄울지 정할 때 쓴다. */
+async function callPage(
+  op: string,
+  params: Record<string, string>,
+): Promise<{ spots: TourSpot[]; total: number }> {
   const query = new URLSearchParams(params).toString()
   const res = await fetch(`/api/tour/${op}?${query}`)
   if (!res.ok) throw new Error(`TourAPI ${op} 실패 (${res.status})`)
@@ -86,7 +94,7 @@ async function call(op: string, params: Record<string, string>): Promise<TourSpo
   const raw = json?.response?.body?.items
   const item = typeof raw === 'object' && raw !== null ? raw.item : null
   const list: Record<string, string>[] = Array.isArray(item) ? item : item ? [item] : []
-  return list.map(toTourSpot)
+  return { spots: list.map(toTourSpot), total: Number(json?.response?.body?.totalCount) || 0 }
 }
 
 /** 관광지가 아닌 항목을 걸러낸다 — 검색·목록·추천이 "무엇이 관광지인가"에 어긋나지 않도록. */
@@ -94,15 +102,31 @@ function onlyAttractions(spots: TourSpot[]): TourSpot[] {
   return spots.filter((s) => ATTRACTION_TYPE_IDS.has(s.contentTypeId))
 }
 
+const LIST_PAGE_SIZE = 40
+
 /**
- * 제주 지역 목록 조회. 검색어가 비었을 때 기본으로 보여줄 목록.
- * KorService2 는 옛 지역코드(areaCode)가 비어 있는 장소가 많다(성산일출봉도 그렇다) — 법정동
- * 코드(lDongRegnCd, 제주 50)로 불러야 제주 전체에서 뽑힌다.
+ * 제주 지역 목록 조회. 검색어가 비었을 때 기본으로 보여줄 목록. 한 페이지씩 받는다.
+ *
+ * - KorService2 는 옛 지역코드(areaCode)가 비어 있는 장소가 많다(성산일출봉도 그렇다) — 법정동
+ *   코드(lDongRegnCd, 제주 50)로 불러야 제주 전체에서 뽑힌다.
+ * - 정렬을 안 주면 제목 가나다순이라 "가"로 시작하는 곳만 나온다. 조회순(B)으로 받아 많이 찾는
+ *   곳이 먼저 오게 한다.
+ * - "전체"는 유형을 안 좁혀서 음식점·숙박도 섞여 오고, 그건 받은 뒤에 거른다. 조회순이면 대부분
+ *   관광지라 한 페이지에서 많이 줄지 않는다.
  */
-export async function areaBasedList(contentTypeId?: string | null): Promise<TourSpot[]> {
-  const params: Record<string, string> = { numOfRows: '30', pageNo: '1', lDongRegnCd: '50' }
+export async function areaBasedList(
+  contentTypeId: string | null,
+  pageNo = 1,
+): Promise<{ spots: TourSpot[]; hasMore: boolean }> {
+  const params: Record<string, string> = {
+    numOfRows: String(LIST_PAGE_SIZE),
+    pageNo: String(pageNo),
+    lDongRegnCd: '50',
+    arrange: 'B',
+  }
   if (contentTypeId) params.contentTypeId = contentTypeId
-  return onlyAttractions(await call('areaBasedList2', params))
+  const { spots, total } = await callPage('areaBasedList2', params)
+  return { spots: onlyAttractions(spots), hasMore: pageNo * LIST_PAGE_SIZE < total }
 }
 
 /** 키워드 검색 — 전국을 뒤진 뒤 주소에 "제주"가 들어간 것만 남긴다. */

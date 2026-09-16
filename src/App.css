@@ -434,6 +434,14 @@
   color: var(--orange);
 }
 
+.search__more {
+  width: 100%;
+  margin-top: var(--space-md);
+  color: var(--primary-deepest);
+}
+.search__more:disabled {
+  color: var(--text-tertiary);
+}
 .places {
   list-style: none;
   margin: 0;
@@ -468,6 +476,11 @@
   border-radius: var(--radius-sm);
   object-fit: cover;
   background: var(--mint);
+}
+/* 글자 칸에도 폭 제한을 줘야 긴 주소가 + 버튼 밑으로 넘치지 않고 말줄임된다 */
+.place__main > span:last-child {
+  flex: 1;
+  min-width: 0;
 }
 .place__title,
 .place__sub {

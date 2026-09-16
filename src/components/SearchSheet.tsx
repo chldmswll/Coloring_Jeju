@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { areaBasedList, categoryLabelOf, CATEGORIES, searchKeyword } from '../api/tourApi'
 import type { CategoryLabel } from '../api/tourApi'
 import type { TourSpot } from '../types'
@@ -23,21 +23,38 @@ export function SearchSheet({
   const [results, setResults] = useState<TourSpot[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // 검색어 없이 보는 기본 목록만 페이지를 넘긴다 — 키워드 검색은 한 번에 받는다.
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  // 탭을 바꾼 뒤에 늦게 도착한 "더 보기" 응답이 새 목록에 섞이지 않게 한다.
+  const listVersion = useRef(0)
+
+  const typeId = CATEGORIES.find((c) => c.label === category)?.typeId ?? null
 
   useEffect(() => {
     let cancelled = false
+    const version = ++listVersion.current
     setLoading(true)
     setError(null)
+    setPage(1)
+    setHasMore(false)
+    setLoadingMore(false)
 
     // 타이핑 중에는 매 글자마다 부르지 않는다. 첫 목록은 기다릴 이유가 없어 바로 부른다.
     const delay = query.trim() ? 400 : 0
     const timer = setTimeout(async () => {
       try {
-        const typeId = CATEGORIES.find((c) => c.label === category)?.typeId ?? null
-        const spots = query.trim()
-          ? await searchKeyword(query.trim())
-          : await areaBasedList(typeId)
-        if (!cancelled) setResults(spots)
+        if (query.trim()) {
+          const spots = await searchKeyword(query.trim())
+          if (!cancelled) setResults(spots)
+        } else {
+          const first = await areaBasedList(typeId, 1)
+          if (!cancelled && version === listVersion.current) {
+            setResults(first.spots)
+            setHasMore(first.hasMore)
+          }
+        }
       } catch (e) {
         if (!cancelled) {
           setResults([])
@@ -52,7 +69,28 @@ export function SearchSheet({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [query, category])
+  }, [query, typeId])
+
+  async function loadMore() {
+    const version = listVersion.current
+    const next = page + 1
+    setLoadingMore(true)
+    try {
+      const more = await areaBasedList(typeId, next)
+      if (version !== listVersion.current) return
+      // 조회순은 호출 사이에 순서가 조금씩 바뀌어서, 앞 페이지에 있던 곳이 또 올 수 있다.
+      setResults((prev) => {
+        const seen = new Set(prev.map((s) => s.contentId))
+        return [...prev, ...more.spots.filter((s) => !seen.has(s.contentId))]
+      })
+      setPage(next)
+      setHasMore(more.hasMore)
+    } catch {
+      /* 실패하면 버튼이 그대로 남아 다시 누를 수 있다 */
+    } finally {
+      if (version === listVersion.current) setLoadingMore(false)
+    }
+  }
 
   // 키워드 검색은 서버에서 분류를 좁힐 수 없어 받은 뒤에 거른다.
   const visible = results.filter(
@@ -119,6 +157,12 @@ export function SearchSheet({
           )
         })}
       </ul>
+
+      {!query.trim() && !loading && hasMore && (
+        <button className="pill t-subtitle search__more" disabled={loadingMore} onClick={() => void loadMore()}>
+          {loadingMore ? '불러오는 중…' : '더 보기'}
+        </button>
+      )}
     </section>
   )
 }
