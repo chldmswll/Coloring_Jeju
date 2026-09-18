@@ -12,7 +12,7 @@ import { HomeIcon, StampIcon, GalleryIcon, PlaneIcon, MyIcon } from './component
 import { AlbumTab } from './components/AlbumTab'
 import { AddIcon } from './components/Icons'
 import { GalleryTab } from './components/GalleryTab'
-import { RelatedSheet } from './components/RelatedSheet'
+import { RelatedList, RelatedSheet, RelatedSource } from './components/RelatedSheet'
 import { relatedAttractions, type RelatedResult } from './api/relatedApi'
 import {
   addTripSpot,
@@ -22,6 +22,7 @@ import {
   watchMyTrips,
 } from './firebase/trips'
 import type { RecommendedSpot, Trip, TripSpot, TourSpot } from './types'
+import logoUrl from './assets/logo.svg'
 import './App.css'
 
 const RECOMMENDED = recommendedSpots as RecommendedSpot[]
@@ -64,7 +65,6 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
   // "함께 가면 좋은 곳" — 담은 직후 추천을 먼저 받아보고, 하나라도 있을 때만 시트를 띄운다.
   // 추천이 없는 장소는 아무 일도 없었던 것처럼 넘어간다.
   const [related, setRelated] = useState<{
-    base: TripSpot
     tripId: string
     result: RelatedResult
   } | null>(null)
@@ -159,21 +159,45 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
     relatedAttractions(base.contentId, exclude)
       .then((result) => {
         if (token !== relatedRequest.current || !result || result.items.length === 0) return
-        setRelated({ base, tripId, result })
+        setRelated({ tripId, result })
       })
       .catch(() => {
         /* 추천은 덤이라, 못 받아와도 담기 자체는 이미 끝났으니 조용히 넘어간다 */
       })
   }
 
+  /** 추천 목록의 +/✓ — 누르면 담고 한 번 더 누르면 뺀다. 여기서 담은 곳의 추천은 또 띄우지 않는다
+   * (끝없이 이어지지 않게). */
+  function toggleRelated(tripId: string, spot: TourSpot, saved: Set<string>) {
+    if (saved.has(spot.contentId)) void removeTripSpot(tripId, spot.contentId)
+    else {
+      const s = fromTourSpot(spot, user.uid)
+      if (s) void addTripSpot(tripId, s)
+    }
+  }
+
+  /** 검색 결과·추천 목록에서 장소를 누르면 상세 시트를 연다. 이미 담긴 곳이면 담긴 기록을 그대로. */
+  function openTourSpot(spot: TourSpot) {
+    const s = fromTourSpot(spot, user.uid)
+    if (s) setOpenSpot(tripSpots.find((v) => v.contentId === s.contentId) ?? s)
+  }
+
+  const relatedSavedIds = related
+    ? new Set((spotsByTrip[related.tripId] ?? EMPTY_SPOTS).map((s) => s.contentId))
+    : null
+
   return (
     <div className="app">
       <header className="app-header">
         <div className="app-header__row">
-          <h1 className="t-display">컬러링 제주</h1>
+          {/* 로고(붓 모양 J)와 제목을 한 덩어리로 붙인다. */}
+          <div className="app-brand">
+            <img className="app-brand__logo" src={logoUrl} alt="" />
+            <h1 className="app-brand__title">컬러링 제주</h1>
+          </div>
 
           {/* 지금 "작업 중인 여행" — 홈·스탬프에서만 쓰이고 둘이 이 선택을 같이 본다.
-              조각모음은 여행 하나를 고르는 화면이 아니라 전부 앨범으로 늘어놓는 화면이라 필요 없다. */}
+              앨범 탭은 화면 안에서 볼 여행을 따로 고르므로 여기엔 띄우지 않는다. */}
           {(mainTab === '홈' || mainTab === '스탬프') && (
             <select
               className="trip-select t-caption"
@@ -191,7 +215,6 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             </select>
           )}
         </div>
-        <p className="t-body app-header__sub">제주에서 만난 색을 모아보세요</p>
       </header>
 
       <main className="app-main">
@@ -247,10 +270,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
                           }
                         }
                       }}
-                      onOpen={(spot) => {
-                        const s = fromTourSpot(spot, user.uid)
-                        if (s) setOpenSpot(tripSpots.find((v) => v.contentId === s.contentId) ?? s)
-                      }}
+                      onOpen={openTourSpot}
                     />
                   </>
                 )
@@ -299,8 +319,21 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
         })}
       </nav>
 
+      {related && relatedSavedIds && (
+        <RelatedSheet
+          result={related.result}
+          savedIds={relatedSavedIds}
+          onToggle={(spot) => toggleRelated(related.tripId, spot, relatedSavedIds)}
+          onOpen={openTourSpot}
+          onClose={() => setRelated(null)}
+        />
+      )}
+
+      {/* 추천 시트에서 장소를 눌러 열 수도 있어서 그 위에 겹쳐 뜨도록 뒤에 그린다 — 닫으면 추천
+          목록으로 돌아간다. key 로 장소마다 새로 그려서, 다른 곳으로 넘어가면 맨 위부터 보이게. */}
       {openSpot && (
         <PlaceSheet
+          key={openSpot.contentId}
           spot={openSpot}
           isSaved={isOpenSaved}
           onToggle={
@@ -316,20 +349,14 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
               : null
           }
           lockedReason={selectedTrip && tripEnded ? '여행이 끝나 더 이상 담거나 뺄 수 없어요' : undefined}
+          savedIds={savedIds}
+          onToggleRelated={
+            selectedTrip && !tripEnded
+              ? (spot) => toggleRelated(selectedTrip.id, spot, savedIds)
+              : null
+          }
+          onOpenRelated={openTourSpot}
           onClose={() => setOpenSpot(null)}
-        />
-      )}
-
-      {related && (
-        <RelatedSheet
-          base={related.base}
-          result={related.result}
-          savedIds={new Set((spotsByTrip[related.tripId] ?? []).map((s) => s.contentId))}
-          onAdd={(spot) => {
-            const s = fromTourSpot(spot, user.uid)
-            if (s) void addTripSpot(related.tripId, s)
-          }}
-          onClose={() => setRelated(null)}
         />
       )}
 
@@ -464,14 +491,38 @@ function PlaceSheet({
   isSaved,
   onToggle,
   lockedReason,
+  savedIds,
+  onToggleRelated,
+  onOpenRelated,
   onClose,
 }: {
   spot: TripSpot
   isSaved: boolean
   onToggle: (() => void) | null
   lockedReason?: string
+  /** 지금 여행에 담긴 곳 — 아래 "함께 가면 좋은 곳"의 +/✓ 를 가른다. */
+  savedIds: Set<string>
+  onToggleRelated: ((spot: TourSpot) => void) | null
+  onOpenRelated: (spot: TourSpot) => void
   onClose: () => void
 }) {
+  // "함께 가면 좋은 곳" — 담기 전에 둘러보는 중에도 보이게 상세 시트 아래에 붙인다. 추천 인덱스에
+  // 없는 장소면 그냥 안 나온다. 이미 담은 곳도 빼지 않고 ✓ 로 보여준다.
+  const [related, setRelated] = useState<RelatedResult | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    relatedAttractions(spot.contentId, new Set([spot.contentId]))
+      .then((result) => {
+        if (!cancelled) setRelated(result)
+      })
+      .catch(() => {
+        /* 추천은 덤이라 못 받아와도 설명은 그대로 보인다 */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [spot.contentId])
+
   // 목록 API 는 overview 를 주지 않는다 — 설명이 비어 있으면 상세 조회로 채운다.
   const [fetched, setFetched] = useState<string | null>(null)
   useEffect(() => {
@@ -516,6 +567,19 @@ function PlaceSheet({
         <span className="tag t-caption">{spot.category}</span>
         <p className="t-caption sheet__addr">{spot.headline}</p>
         <p className="t-body sheet__desc">{description}</p>
+
+        {related && related.items.length > 0 && (
+          <section className="sheet__related">
+            <h3 className="t-subtitle">함께 가면 좋은 곳</h3>
+            <RelatedList
+              items={related.items}
+              savedIds={savedIds}
+              onToggle={onToggleRelated}
+              onOpen={onOpenRelated}
+            />
+            <RelatedSource baseYm={related.baseYm} />
+          </section>
+        )}
       </div>
     </div>
   )

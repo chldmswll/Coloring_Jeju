@@ -57,3 +57,15 @@
   font-weight: 900;
   font-display: swap;
 }
+
+/*
+ * 제주돌담체(EF_jejudoldam) — 헤더의 "컬러링 제주" 제목과 콜라주 글씨에 쓴다. 굵기가 하나뿐이라
+ * 쓰는 쪽에서 font-weight 를 normal 로 둬야 브라우저가 가짜 굵게를 덧칠하지 않는다.
+ * 원본 TTF 를 woff2 로 압축해 넣었다(1.8MB → 200KB).
+ */
+@font-face {
+  font-family: 'JejuDoldam';
+  src: url('../font/EF_jejudoldam.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}

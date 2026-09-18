@@ -41,9 +41,24 @@
 .app-header h1 {
   margin: 0;
 }
-.app-header__sub {
-  margin: var(--space-xs) 0 0;
-  color: var(--text-secondary);
+/* 로고 + "컬러링 제주" — 로고 바로 옆에 제목을 붙인다. 제목만 제주돌담체(굵기 하나뿐). */
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.app-brand__logo {
+  flex: none;
+  height: 34px;
+  width: auto;
+}
+.app-brand__title {
+  font-family: 'JejuDoldam', 'Pretendard', sans-serif;
+  font-size: 28px;
+  font-weight: normal;
+  line-height: 34px;
+  white-space: nowrap;
 }
 
 .app-main {
@@ -262,31 +277,20 @@
   margin: var(--space-md) 0 0;
 }
 
-/* "함께 가면 좋은 곳" 시트 — 장소를 담은 직후 뜬다 */
-.related__done {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* "함께 가면 좋은 곳" — 담은 직후 뜨는 시트, 그리고 장소 상세 시트 아래에도 같은 목록이 붙는다 */
+.related h2 {
   margin: 0;
-  color: var(--primary-deepest);
 }
-.related__done-check {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: var(--white);
-  font-size: 10px;
-  font-weight: 700;
+.sheet__related {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1.5px solid var(--border);
 }
-.related__title {
-  margin: var(--space-lg) 0 0;
+.sheet__related h3 {
+  margin: 0;
 }
-.related__lead {
-  margin: var(--space-xs) 0 0;
-  color: var(--text-secondary);
+.sheet__related .related__list {
+  margin-top: var(--space-md);
 }
 .related__list {
   list-style: none;
@@ -304,6 +308,16 @@
   border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--white);
+}
+/* 순위·사진·이름 부분 — 누르면 상세 시트가 열린다(+ 버튼과는 따로). */
+.related__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0;
+  text-align: left;
 }
 .related__rank {
   flex: none;
@@ -349,16 +363,17 @@
   justify-content: space-between;
   gap: var(--space-md);
 }
-.gallery__count {
-  margin: 0;
+.gallery__title {
+  margin: 0 0 2px;
 }
+/* 한 줄에 4장 — 폰 폭에서 칸이 작아지니 간격과 테두리도 조금 줄였다. */
 .gallery__grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-sm);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 .gallery__shot {
   position: relative;
@@ -366,8 +381,8 @@
   width: 100%;
   aspect-ratio: 1;
   padding: 0;
-  border: 3px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 2.5px solid var(--border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--off-white);
 }
@@ -376,18 +391,116 @@
   height: 100%;
   object-fit: cover;
 }
-/* 고르는 중 — 안 고른 사진은 살짝 눌러둬서 고른 것이 도드라지게 한다. */
+/* 고르는 중 — 폰 사진 앱처럼 오른쪽 위에 빈 동그라미, 고르면 초록 동그라미 안에 체크.
+   흰 테두리 + 옅은 그림자를 둬서 밝은 사진 위에서도 동그라미가 보인다. */
 .gallery__pick {
   position: absolute;
-  inset: 0;
+  top: 5px;
+  right: 5px;
   display: grid;
   place-items: center;
-  background: rgba(43, 46, 36, 0.3);
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   color: var(--white);
-  font-size: 26px;
+  font-size: 15px;
 }
 .gallery__pick.is-selected {
-  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  background: var(--primary);
+}
+/* 고른 사진은 살짝 옅게 — 동그라미를 안 봐도 어떤 걸 골랐는지 보인다. */
+.gallery__shot.is-selected img {
+  opacity: 0.72;
+}
+
+/* 앨범 첫 화면 — 여행 카드. 왼쪽에 대표 사진, 가운데 이름·기간·사진 수와 모은 색. */
+.album-trip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  text-align: left;
+}
+.album-trip__cover {
+  flex: none;
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: var(--mint);
+}
+.album-trip__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.album-trip__name {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.album-trip__sub {
+  color: var(--text-secondary);
+}
+.album-trip__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.album-trip__dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.album-trip__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* 콜라주 테마 고르기 — 테마를 한 줄에 쫙 늘어놓고, 예시 그림은 작게. */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 6px var(--space-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  text-align: center;
+}
+.theme-option:active {
+  border-color: var(--primary);
+}
+.theme-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+.theme-option__desc {
+  color: var(--text-secondary);
 }
 
 /* 만든 콜라주 화면 */

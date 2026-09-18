@@ -130,10 +130,21 @@ export async function areaBasedList(
   return { spots: onlyAttractions(spots), hasMore: pageNo * LIST_PAGE_SIZE < total }
 }
 
-/** 키워드 검색 — 전국을 뒤진 뒤 주소에 "제주"가 들어간 것만 남긴다. */
+/**
+ * 키워드 검색 — 처음부터 제주(법정동 50)로 좁혀서 부른다.
+ *
+ * 예전엔 전국에서 30건만 받은 뒤 주소로 제주를 걸렀는데, "레저"처럼 전국에 흔한 단어는 앞
+ * 30건이 전부 다른 지역이라 제주 장소가 있어도 결과가 비었다. 제주만 받으면 "오름"도 77건
+ * 정도라 한 번에 넉넉히 받는다.
+ */
 export async function searchKeyword(keyword: string): Promise<TourSpot[]> {
-  const spots = await call('searchKeyword2', { numOfRows: '30', pageNo: '1', keyword })
-  return onlyAttractions(spots).filter((s) => s.addr1.includes('제주'))
+  const spots = await call('searchKeyword2', {
+    numOfRows: '100',
+    pageNo: '1',
+    lDongRegnCd: '50',
+    keyword,
+  })
+  return onlyAttractions(spots)
 }
 
 /**
