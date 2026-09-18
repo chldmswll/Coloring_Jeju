@@ -93,6 +93,22 @@ export async function updateDisplayName(name: string): Promise<AuthResult> {
   }
 }
 
+/**
+ * 프로필 사진 — Storage 없이 Auth 프로필의 photoURL 필드에 직접 저장한다. 그래서 MyPage 에서
+ * 고른 사진을 이 함수를 부르기 전에 아주 작은 정사각형 데이터 URL로 줄여둬야 한다(원본 그대로
+ * 넘기면 photoURL 로 못 쓸 만큼 길어진다).
+ */
+export async function updateProfilePhoto(photoDataUrl: string): Promise<AuthResult> {
+  const user = auth.currentUser
+  if (!user) return { ok: false, message: '로그인이 필요해요.' }
+  try {
+    await updateProfile(user, { photoURL: photoDataUrl })
+    return { ok: true, user }
+  } catch (e) {
+    return toResult(e)
+  }
+}
+
 export function logOut() {
   return signOut(auth)
 }

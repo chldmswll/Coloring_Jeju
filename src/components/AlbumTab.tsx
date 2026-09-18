@@ -70,13 +70,21 @@ export function AlbumTab({
     }
   }
 
+  // 여행 컴포넌트를 위에서 아래로 훑을 때 무지개가 이어지도록, 세 그룹을 하나의 순서로 잇는다.
+  const ongoing = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'ongoing'))
+  const upcoming = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'upcoming'))
+  const past = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'past'))
+  const ordered = [...ongoing, ...upcoming, ...past]
+
   if (openId) {
     const trip = trips.find((t) => t.id === openId)
     if (trip) {
+      const colorIndex = ordered.findIndex((t) => t.id === openId)
       return (
         <TripDetail
           trip={trip}
           uid={user.uid}
+          background={pastelRainbow(colorIndex)}
           onBack={() => setOpenId(null)}
           onLeave={() =>
             void run(async () => {
@@ -88,11 +96,6 @@ export function AlbumTab({
       )
     }
   }
-
-  // 여행 컴포넌트를 위에서 아래로 훑을 때 무지개가 이어지도록, 세 그룹을 하나의 순서로 잇는다.
-  const ongoing = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'ongoing'))
-  const upcoming = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'upcoming'))
-  const past = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'past'))
 
   return (
     <section className="group">
@@ -372,10 +375,9 @@ function TripList({
               <span className={'kind-tag t-caption' + (t.kind === 'group' ? ' kind-tag--group' : ' kind-tag--personal')}>
                 {t.kind === 'group' ? '그룹' : '개인'}
               </span>
-              <p className="t-subtitle group-card__name">{t.name}</p>
+              <p className="group-card__name">{t.name}</p>
               <p className="t-caption group-card__sub">
                 {t.startDate} ~ {t.endDate}
-                {t.kind === 'group' ? ` · 멤버 ${t.memberUids.length}명 · 코드 ${t.inviteCode}` : ''}
               </p>
             </div>
             <span className="t-caption group-card__go">›</span>
@@ -389,11 +391,13 @@ function TripList({
 function TripDetail({
   trip,
   uid,
+  background,
   onBack,
   onLeave,
 }: {
   trip: Trip
   uid: string
+  background: string
   onBack: () => void
   onLeave: () => void
 }) {
@@ -405,7 +409,7 @@ function TripDetail({
   const isOwner = trip.ownerUid === uid
 
   return (
-    <section className="group">
+    <section className="group group--detail" style={{ background }}>
       <div className="group__head">
         <button className="t-subtitle group__back" onClick={onBack}>
           ‹ 여행 목록
