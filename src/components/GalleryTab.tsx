@@ -51,7 +51,13 @@ export function GalleryTab({
   return <TripPicker trips={trips} spotsByTrip={spotsByTrip} onOpen={setOpenId} />
 }
 
-/** 앨범 첫 화면 — 여행마다 대표 사진, 기간, 사진 수, 모은 색을 한 줄 카드로. */
+/** 여행 카드에 미리 보여줄 사진 수 — 2x2 칸. */
+const PREVIEW_CELLS = 4
+
+/**
+ * 앨범 첫 화면 — 여행을 두 줄 그리드로. 카드마다 최신 사진 4장을 2x2 로 보여주고, 사진이 모자란
+ * 칸은 회색 네모로 채운다(사진이 없어도 카드 모양이 똑같이 유지되게). 아래에 이름·기간·모은 색.
+ */
 function TripPicker({
   trips,
   spotsByTrip,
@@ -74,46 +80,38 @@ function TripPicker({
   const ordered = [...trips].sort((a, b) => b.startDate.localeCompare(a.startDate))
 
   return (
-    <section>
-      <p className="t-subtitle section-label">사진을 볼 여행을 골라주세요</p>
-      <div className="group__list">
-        {ordered.map((t) => {
-          const photos = photosOf(spotsByTrip[t.id] ?? EMPTY_SPOTS)
-          const cover = photos[0]?.photo
-          return (
-            <button key={t.id} className="album-trip" onClick={() => onOpen(t.id)}>
-              {cover ? (
-                <img className="album-trip__cover" src={cover} alt="" />
-              ) : (
-                <span className="album-trip__cover" aria-hidden="true" />
+    <section className="album-trips">
+      {ordered.map((t) => {
+        const photos = photosOf(spotsByTrip[t.id] ?? EMPTY_SPOTS)
+        return (
+          <button key={t.id} className="album-trip" onClick={() => onOpen(t.id)}>
+            <span className="album-trip__mosaic" aria-hidden="true">
+              {Array.from({ length: PREVIEW_CELLS }, (_, i) =>
+                photos[i] ? (
+                  <img key={i} className="album-trip__cell" src={photos[i].photo!} alt="" />
+                ) : (
+                  <span key={i} className="album-trip__cell is-empty" />
+                ),
               )}
-              <span className="album-trip__info">
-                <span className="album-trip__name">{t.name}</span>
-                <span className="t-caption album-trip__sub">
-                  {t.startDate} ~ {t.endDate}
-                </span>
-                <span className="t-caption album-trip__sub album-trip__meta">
-                  사진 {photos.length}장
-                  {photos.length > 0 && (
-                    <span className="album-trip__dots" aria-hidden="true">
-                      {photos.slice(0, 8).map((p) => (
-                        <span
-                          key={p.contentId}
-                          className="album-trip__dot"
-                          style={{ background: p.verifiedColor ?? undefined }}
-                        />
-                      ))}
-                    </span>
-                  )}
-                </span>
+            </span>
+            <span className="album-trip__name">{t.name}</span>
+            <span className="t-caption album-trip__sub">
+              {t.startDate} ~ {t.endDate}
+            </span>
+            {photos.length > 0 && (
+              <span className="album-trip__dots" aria-hidden="true">
+                {photos.slice(0, 8).map((p) => (
+                  <span
+                    key={p.contentId}
+                    className="album-trip__dot"
+                    style={{ background: p.verifiedColor ?? undefined }}
+                  />
+                ))}
               </span>
-              <span className="group-card__go" aria-hidden="true">
-                ›
-              </span>
-            </button>
-          )
-        })}
-      </div>
+            )}
+          </button>
+        )
+      })}
     </section>
   )
 }

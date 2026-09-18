@@ -57,9 +57,6 @@ export function VerifySheet({
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="sheet__handle" />
         <h2 className="t-title">{spot.title}</h2>
-        <p className="t-caption sheet__addr">
-          사진을 찍으면 그 장소의 색을 뽑아 담아요.
-        </p>
 
         <div className="verify__frame">
           {photo ? (
@@ -83,7 +80,7 @@ export function VerifySheet({
 
         {colors.length > 0 && (
           <>
-            <p className="t-caption sheet__addr">추출된 대표 색 · 색을 선택해주세요</p>
+            <p className="t-caption sheet__addr">사진에서 추출된 색 3가지 중 하나를 골라주세요</p>
             <div className="swatches">
               {colors.map((c) => (
                 <button
@@ -96,11 +93,11 @@ export function VerifySheet({
               ))}
             </div>
 
-            <p className="t-caption sheet__addr">이 순간을 기록할 한마디 (선택)</p>
+            <p className="t-caption sheet__addr">후기 한마디를 작성해주세요 (선택)</p>
             <textarea
               className="search__input t-body verify__caption"
               rows={2}
-              placeholder="예: 바람이 좋아서 한참 앉아 있었다"
+              placeholder="바람이 좋아서 한참 앉아 있었다"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
             />
