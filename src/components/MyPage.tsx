@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { User } from 'firebase/auth'
 import { logOut, updateDisplayName, updateProfilePhoto } from '../firebase/auth'
+import { ConfirmModal } from './AlbumTab'
 import { AddIcon, CheckIcon, PencilIcon } from './Icons'
 import type { TripSpot } from '../types'
 
@@ -71,6 +72,7 @@ export function MyPage({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const displayName = user.displayName || user.email?.split('@')[0] || '여행자'
@@ -180,9 +182,21 @@ export function MyPage({
         </div>
       </div>
 
-      <button className="pill t-subtitle mypage__logout" onClick={() => void logOut()}>
+      <button className="pill t-subtitle mypage__logout" onClick={() => setConfirmingLogout(true)}>
         로그아웃
       </button>
+
+      {confirmingLogout && (
+        <ConfirmModal
+          title="정말 로그아웃 하시겠습니까?"
+          confirmLabel="로그아웃"
+          onCancel={() => setConfirmingLogout(false)}
+          onConfirm={() => {
+            setConfirmingLogout(false)
+            void logOut()
+          }}
+        />
+      )}
     </section>
   )
 }

@@ -10,15 +10,10 @@
   background: var(--off-white);
 }
 
-.auth__title {
-  margin: 0;
-  text-align: center;
-}
-
-.auth__sub {
-  margin: 0 0 var(--space-lg);
-  text-align: center;
-  color: var(--text-secondary);
+/* 로고 + "컬러링 제주" — 앱 헤더와 같은 모양(.app-brand)을 가운데로. */
+.auth__brand {
+  justify-content: center;
+  margin-bottom: var(--space-lg);
 }
 
 .field {
@@ -35,6 +30,36 @@
 .field input:focus {
   outline: 2px solid var(--primary);
   outline-offset: -1px;
+}
+
+/* 비밀번호 칸 — 오른쪽에 눈 버튼이 겹쳐 앉으니 그만큼 입력칸 오른쪽을 비운다. */
+.field__control {
+  position: relative;
+  display: block;
+}
+.field__control input {
+  width: 100%;
+  padding-right: 52px;
+}
+/* 길게 누르는 버튼이라 폰에서 길게 누르기 메뉴·글자 선택이 끼어들지 않게 막는다. */
+.field__eye {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+  color: var(--text-tertiary);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.field__eye.is-active {
+  color: var(--primary);
 }
 
 .auto-login {

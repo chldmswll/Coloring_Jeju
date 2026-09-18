@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { areaBasedList, categoryLabelOf, CATEGORIES, searchKeyword } from '../api/tourApi'
 import type { CategoryLabel } from '../api/tourApi'
-import { AddIcon, CheckIcon } from './Icons'
+import { AddIcon, CheckIcon, SearchIcon } from './Icons'
 import type { TourSpot } from '../types'
 
 /**
@@ -100,12 +100,16 @@ export function SearchSheet({
 
   return (
     <section className="search">
-      <input
-        className="search__input t-body"
-        placeholder="장소 검색 (예: 우도, 오름)"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      {/* 타이핑하면 알아서 검색되니 돋보기는 표시용 — 눌러도 따로 하는 일은 없다. */}
+      <div className="search__field">
+        <input
+          className="search__input t-body"
+          placeholder="제주도의 여행지를 검색하세요."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <SearchIcon className="search__icon" />
+      </div>
 
       <div className="chips">
         {CATEGORIES.map((c) => (

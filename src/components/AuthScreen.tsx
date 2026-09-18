@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { signIn, signUp } from '../firebase/auth'
+import { Brand } from './Brand'
+import { EyeIcon } from './Icons'
 import './AuthScreen.css'
 
 type Mode = 'LOGIN' | 'SIGN_UP'
@@ -54,10 +56,8 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void })
 
   return (
     <form className="auth" onSubmit={submit}>
-      <h1 className="t-display auth__title">컬러링 제주</h1>
-      <p className="t-body auth__sub">
-        {mode === 'LOGIN' ? '로그인하고 여행을 이어가요' : '회원가입하고 여행을 시작해요'}
-      </p>
+      {/* 앱 헤더와 똑같은 로고 + 제목을 가운데에. */}
+      <Brand className="auth__brand" />
 
       <label className="field">
         <span className="t-subtitle">이메일</span>
@@ -76,14 +76,12 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void })
 
       <label className="field">
         <span className="t-subtitle">비밀번호</span>
-        <input
-          type="password"
-          className="t-body"
+        <PasswordInput
           placeholder="6자 이상 입력해주세요"
           autoComplete={mode === 'LOGIN' ? 'current-password' : 'new-password'}
           value={password}
-          onChange={(e) => {
-            setPassword(e.target.value)
+          onChange={(value) => {
+            setPassword(value)
             setError(null)
           }}
         />
@@ -92,14 +90,12 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void })
       {mode === 'SIGN_UP' ? (
         <label className="field">
           <span className="t-subtitle">비밀번호 확인</span>
-          <input
-            type="password"
-            className="t-body"
+          <PasswordInput
             placeholder="비밀번호를 다시 입력해주세요"
             autoComplete="new-password"
             value={passwordConfirm}
-            onChange={(e) => {
-              setPasswordConfirm(e.target.value)
+            onChange={(value) => {
+              setPasswordConfirm(value)
               setError(null)
             }}
           />
@@ -134,5 +130,58 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void })
         {mode === 'LOGIN' ? '아직 계정이 없으신가요? 회원가입' : '이미 계정이 있으신가요? 로그인'}
       </button>
     </form>
+  )
+}
+
+/**
+ * 비밀번호 칸 + 오른쪽 눈 아이콘. 눈을 누르고 있는 동안만 적은 글자가 보이고, 손을 떼면(또는
+ * 손가락이 버튼 밖으로 나가면) 바로 다시 가려진다. 누르는 순간 기본 동작을 막아서 입력칸의
+ * 포커스와 키보드가 그대로 남는다.
+ */
+function PasswordInput({
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  autoComplete: string
+}) {
+  const [shown, setShown] = useState(false)
+  const hide = () => setShown(false)
+
+  return (
+    <span className="field__control">
+      <input
+        type={shown ? 'text' : 'password'}
+        className="t-body"
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <button
+        type="button"
+        className={'field__eye' + (shown ? ' is-active' : '')}
+        aria-label="누르고 있는 동안 비밀번호 보기"
+        onPointerDown={(e) => {
+          e.preventDefault()
+          setShown(true)
+        }}
+        onPointerUp={hide}
+        onPointerLeave={hide}
+        onPointerCancel={hide}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') setShown(true)
+        }}
+        onKeyUp={hide}
+        onBlur={hide}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <EyeIcon />
+      </button>
+    </span>
   )
 }

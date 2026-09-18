@@ -22,7 +22,7 @@ import {
   watchMyTrips,
 } from './firebase/trips'
 import type { RecommendedSpot, Trip, TripSpot, TourSpot } from './types'
-import logoUrl from './assets/logo.svg'
+import { Brand } from './components/Brand'
 import './App.css'
 
 const RECOMMENDED = recommendedSpots as RecommendedSpot[]
@@ -190,11 +190,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
     <div className="app">
       <header className="app-header">
         <div className="app-header__row">
-          {/* 로고(붓 모양 J)와 제목을 한 덩어리로 붙인다. */}
-          <div className="app-brand">
-            <img className="app-brand__logo" src={logoUrl} alt="" />
-            <h1 className="app-brand__title">컬러링 제주</h1>
-          </div>
+          <Brand />
 
           {/* 지금 "작업 중인 여행" — 홈·스탬프에서만 쓰이고 둘이 이 선택을 같이 본다.
               앨범 탭은 화면 안에서 볼 여행을 따로 고르므로 여기엔 띄우지 않는다. */}
@@ -250,7 +246,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             )}
 
             <div className="add-panel">
-              <h2 className="t-title">여행지 추가하기</h2>
+              <h2 className="t-title">여행지 검색</h2>
               {selectedTrip ? (
                 tripEnded ? (
                   <p className="t-caption app-hint">
@@ -425,7 +421,9 @@ function StampList({
               {i === doneStartIndex && doneStartIndex > 0 && <hr className="stamps-divider" />}
               <StampCard
                 spot={s}
-                selected={s.contentId === selectedId}
+                // 원래 선택값(selectedId)이 아니라 파생값으로 칠한다 — 골라둔 채로 인증을 마친 곳에
+                // 노란 선택 테두리가 남지 않도록.
+                selected={s.contentId === selected?.contentId}
                 onClick={
                   isDone || locked
                     ? undefined

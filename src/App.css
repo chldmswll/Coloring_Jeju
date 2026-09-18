@@ -54,6 +54,7 @@
   width: auto;
 }
 .app-brand__title {
+  margin: 0;
   font-family: 'JejuDoldam', 'Pretendard', sans-serif;
   font-size: 28px;
   font-weight: normal;
@@ -411,6 +412,16 @@
 .gallery__pick.is-selected {
   background: var(--primary);
 }
+/* 사진 고르는 중 안내 + 오른쪽 "전체 선택" */
+.gallery__pick-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.gallery__pick-all {
+  flex: none;
+}
 /* 고른 사진은 살짝 옅게 — 동그라미를 안 봐도 어떤 걸 골랐는지 보인다. */
 .gallery__shot.is-selected img {
   opacity: 0.72;
@@ -590,6 +601,24 @@
 .search__input:focus {
   outline: 2px solid var(--primary);
   outline-offset: -1px;
+}
+/* 검색창 + 오른쪽 돋보기. 돋보기 자리만큼 입력칸 오른쪽 여백을 비워 글자가 겹치지 않게 한다. */
+.search__field {
+  position: relative;
+  margin-top: var(--space-lg);
+}
+.search__field .search__input {
+  margin-top: 0;
+  padding-right: 44px;
+}
+.search__icon {
+  position: absolute;
+  top: 50%;
+  right: var(--space-lg);
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: var(--text-secondary);
+  pointer-events: none;
 }
 .chips {
   display: flex;
@@ -888,6 +917,14 @@
 .group-card__sub {
   color: var(--text-secondary);
 }
+/* 날짜 + 개인/그룹 꼬리표 한 줄. .group-card p 의 margin:0 보다 세게 걸려야 해서 두 단계로 쓴다. */
+.group-card .group-card__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
 /* 그룹/개인 표시 — 눌리지 않는 장식용 꼬리표라 카드 클릭과는 별개로 그냥 얹혀 있다. */
 .kind-tag {
   display: inline-block;
@@ -1039,8 +1076,12 @@
 .stat p {
   margin: 0;
 }
+/* 로그아웃 — 오른쪽 끝에, 홈의 선택된 탭과 같은 초록 계열(민트 바탕 + 진초록 글자)로. */
 .mypage__logout {
-  color: var(--orange);
+  align-self: flex-end;
+  border-color: var(--mint);
+  background: var(--mint);
+  color: var(--primary-deepest);
 }
 
 /* 탭이 5개가 되면서 글자가 좁아진다 */

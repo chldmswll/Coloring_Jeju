@@ -304,7 +304,7 @@ export function CreateTripSheet({
 
           <input
             className="search__input t-body"
-            placeholder="여행 이름 (예: 제주 3박4일)"
+            placeholder="여행 이름을 작성해주세요."
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -374,12 +374,13 @@ function TripList({
             onClick={() => onOpen(t.id)}
           >
             <div>
-              <span className={'kind-tag t-caption' + (t.kind === 'group' ? ' kind-tag--group' : ' kind-tag--personal')}>
-                {t.kind === 'group' ? '그룹' : '개인'}
-              </span>
               <p className="group-card__name">{t.name}</p>
-              <p className="t-caption group-card__sub">
+              {/* 개인/그룹 꼬리표는 날짜 바로 옆에 조금 띄워서 붙인다. */}
+              <p className="t-caption group-card__sub group-card__meta">
                 {t.startDate} ~ {t.endDate}
+                <span className={'kind-tag t-caption' + (t.kind === 'group' ? ' kind-tag--group' : ' kind-tag--personal')}>
+                  {t.kind === 'group' ? '그룹' : '개인'}
+                </span>
               </p>
             </div>
             <span className="t-caption group-card__go">›</span>
@@ -480,8 +481,8 @@ function TripDetail({
   )
 }
 
-/** 되돌릴 수 없는 동작(삭제/나가기) 전에 한 번 더 확인받는 팝업. */
-function ConfirmModal({
+/** 되돌릴 수 없는 동작(삭제/나가기/로그아웃) 전에 한 번 더 확인받는 팝업. */
+export function ConfirmModal({
   title,
   body,
   confirmLabel,
@@ -489,7 +490,8 @@ function ConfirmModal({
   onConfirm,
 }: {
   title: string
-  body: string
+  /** 없으면 제목만 묻는다(예: 로그아웃). */
+  body?: string
   confirmLabel: string
   onCancel: () => void
   onConfirm: () => void
@@ -501,7 +503,7 @@ function ConfirmModal({
           ✕
         </button>
         <h2 className="t-title">{title}</h2>
-        <p className="t-body confirm-modal__body">{body}</p>
+        {body && <p className="t-body confirm-modal__body">{body}</p>}
         <div className="verify__actions">
           <button className="pill t-subtitle" onClick={onCancel}>
             취소

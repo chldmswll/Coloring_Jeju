@@ -135,6 +135,7 @@ function TripGallery({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [made, setMade] = useState<{ theme: CollageTheme; pieces: TripSpot[] } | null>(null)
   const picking = pickTheme !== null
+  const allSelected = photos.length > 0 && selected.size === photos.length
 
   if (made) {
     return (
@@ -210,14 +211,25 @@ function TripGallery({
       <div>
         <h2 className="t-title gallery__title">{trip.name}</h2>
         <p className="t-caption app-hint">
-          {trip.startDate} ~ {trip.endDate} · 사진 {photos.length}장
+          {trip.startDate} ~ {trip.endDate}
         </p>
       </div>
 
       {picking && (
-        <p className="t-caption app-hint">
-          '{pickTheme}' 테마로 만들어요. 콜라주에 넣을 사진을 골라주세요.
-        </p>
+        <div className="gallery__pick-bar">
+          <p className="t-caption app-hint">
+            '{pickTheme}' 테마로 만들어요. 콜라주에 넣을 사진을 골라주세요.
+          </p>
+          {/* 다 골라져 있으면 같은 자리에서 한 번에 풀 수 있게 한다. */}
+          <button
+            className="t-subtitle group__back gallery__pick-all"
+            onClick={() =>
+              setSelected(allSelected ? new Set() : new Set(photos.map((p) => p.contentId)))
+            }
+          >
+            {allSelected ? '전체 해제' : '전체 선택'}
+          </button>
+        </div>
       )}
 
       {photos.length === 0 ? (
