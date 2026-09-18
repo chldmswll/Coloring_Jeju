@@ -1,4 +1,5 @@
 import type { RelatedResult } from '../api/relatedApi'
+import { AddIcon, CheckIcon } from './Icons'
 import type { TourSpot, TripSpot } from '../types'
 
 /** 받침이 있으면 "을", 없으면 "를". 한글로 안 끝나면 둘 다 적는다. */
@@ -34,8 +35,8 @@ export function RelatedSheet({
         <div className="sheet__handle" />
 
         <p className="t-caption related__done">
-          <span className="related__done-check" aria-hidden="true">
-            ✓
+          <span className="related__done-check">
+            <CheckIcon />
           </span>
           {withObjectParticle(baseName)} 여행에 담았어요
         </p>
@@ -65,7 +66,15 @@ export function RelatedSheet({
                   disabled={added}
                   onClick={() => onAdd(it.spot)}
                 >
-                  {added ? '✓ 담음' : '+ 담기'}
+                  {added ? (
+                    <>
+                      <CheckIcon className="icon-inline" /> 담음
+                    </>
+                  ) : (
+                    <>
+                      <AddIcon className="icon-inline" /> 담기
+                    </>
+                  )}
                 </button>
               </li>
             )

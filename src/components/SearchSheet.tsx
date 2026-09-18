@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { areaBasedList, categoryLabelOf, CATEGORIES, searchKeyword } from '../api/tourApi'
 import type { CategoryLabel } from '../api/tourApi'
+import { AddIcon, CheckIcon } from './Icons'
 import type { TourSpot } from '../types'
 
 /**
@@ -151,7 +152,7 @@ export function SearchSheet({
                 title={placeable ? undefined : '좌표가 없어 지도에 담을 수 없어요'}
                 onClick={() => onToggle(spot)}
               >
-                {added ? '✓' : '+'}
+                {added ? <CheckIcon /> : <AddIcon />}
               </button>
             </li>
           )

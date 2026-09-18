@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { User } from 'firebase/auth'
-import { leaveTrip, tripStatus, watchTripSpots } from '../firebase/trips'
+import crownIcon from '../assets/crown.svg'
+import { createTrip, joinTripByCode, leaveTrip, tripStatus, watchTripSpots } from '../firebase/trips'
+import { AddIcon } from './Icons'
 import { PieceTimeline } from './PieceTimeline'
 import type { Trip, TripKind, TripSpot } from '../types'
 
@@ -9,19 +11,42 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+function sortByStartDateDesc(trips: Trip[]): Trip[] {
+  return [...trips].sort((a, b) => b.startDate.localeCompare(a.startDate))
+}
+
+/** 여행 카드 배경 — 목록을 위에서 아래로 훑을 때 아주 옅은 파스텔 무지개가 이어지도록. */
+function pastelRainbow(index: number): string {
+  return `hsl(${(index * 32) % 360}, 65%, 93%)`
+}
+
 /**
- * 앨범 — 만든/참여한 여행을 모아보는 곳. (예전 "그룹" 탭 자리)
+ * 여행 탭 — 만든/참여한 여행을 모아보고, 새 여행을 만들거나 코드로 참여하는 곳.
  *
- * 여행 "만들기·코드로 참여하기"는 홈 탭으로 옮겨졌다 — 여기는 목록·상세만 보여준다.
- * 목록은 진행중·예정과 다녀옴으로 나눠서 보여준다 — 종료일이 지나면 자동으로 다녀옴으로
- * 분류된다(tripStatus).
+ * 목록은 진행 중·예정·다녀온 여행 세 그룹으로 나눠서 보여준다 — 종료일이 지나면 자동으로
+ * 다녀온 여행으로 분류된다(tripStatus).
  *
  * `trips` 는 App.tsx 에서 이미 구독 중인 걸 그대로 받는다 — 홈 화면 드롭다운과 같은 데이터를
- * 두 번 구독할 이유가 없다.
+ * 두 번 구독할 이유가 없다. 여행을 만들거나 참여하면 `onTripSelect`로 홈·스탬프가 보는
+ * "현재 작업 중인 여행"도 그 여행으로 바꿔준다.
  */
-export function AlbumTab({ user, trips }: { user: User; trips: Trip[] }) {
+export function AlbumTab({
+  user,
+  trips,
+  onTripSelect,
+}: {
+  user: User
+  trips: Trip[]
+  onTripSelect: (tripId: string) => void
+}) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const [showCreateTrip, setShowCreateTrip] = useState(false)
+  const [showJoinTrip, setShowJoinTrip] = useState(false)
+  const [tripActionBusy, setTripActionBusy] = useState(false)
+  const [justCreatedTrip, setJustCreatedTrip] = useState<Trip | null>(null)
+  const displayName = user.displayName || user.email?.split('@')[0] || '여행자'
 
   async function run(action: () => Promise<unknown>) {
     setError(null)
@@ -29,6 +54,19 @@ export function AlbumTab({ user, trips }: { user: User; trips: Trip[] }) {
       await action()
     } catch (e) {
       setError(e instanceof Error ? e.message : '여행 처리 중 오류가 발생했어요.')
+    }
+  }
+
+  async function runTripAction(action: () => Promise<Trip>) {
+    setTripActionBusy(true)
+    setError(null)
+    try {
+      const trip = await action()
+      onTripSelect(trip.id)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '여행 처리 중 오류가 발생했어요.')
+    } finally {
+      setTripActionBusy(false)
     }
   }
 
@@ -51,30 +89,112 @@ export function AlbumTab({ user, trips }: { user: User; trips: Trip[] }) {
     }
   }
 
-  const upcoming = trips.filter((t) => tripStatus(t) !== 'past')
-  const past = trips.filter((t) => tripStatus(t) === 'past')
+  // 여행 컴포넌트를 위에서 아래로 훑을 때 무지개가 이어지도록, 세 그룹을 하나의 순서로 잇는다.
+  const ongoing = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'ongoing'))
+  const upcoming = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'upcoming'))
+  const past = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'past'))
 
   return (
     <section className="group">
+      <div className="album-actions">
+        <button className="btn-primary t-button" onClick={() => setShowCreateTrip(true)}>
+          <AddIcon className="icon-inline" /> 여행 추가
+        </button>
+        <button className="pill t-button album-actions__code" onClick={() => setShowJoinTrip(true)}>
+          코드 입력
+        </button>
+      </div>
+
+      {justCreatedTrip && (
+        <div className="modal-scrim" onClick={() => setJustCreatedTrip(null)}>
+          <div className="modal invite-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="modal__close"
+              aria-label="닫기"
+              onClick={() => setJustCreatedTrip(null)}
+            >
+              ✕
+            </button>
+            <h2 className="t-title">초대 코드가 발급됐어요</h2>
+            <p className="t-caption">친구에게 이 코드를 알려주면 같이 담을 수 있어요.</p>
+            <div className="group__row">
+              <span className="t-display invite-card__code">{justCreatedTrip.inviteCode}</span>
+              <button
+                className="pill t-subtitle"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(justCreatedTrip.inviteCode ?? '')
+                }}
+              >
+                복사
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && <p className="t-caption search__error">{error}</p>}
 
       {trips.length === 0 ? (
         <div className="empty t-body">
           아직 만든 여행이 없어요.
           <br />
-          홈에서 여행을 만들거나 친구의 코드로 참여해보세요.
+          "여행 추가"로 새로 만들거나 친구의 코드로 참여해보세요.
         </div>
       ) : (
         <>
-          <TripList title="진행중·예정" trips={upcoming} onOpen={setOpenId} />
-          <TripList title="다녀옴" trips={past} onOpen={setOpenId} />
+          <TripList title="진행 중인 여행" trips={ongoing} startIndex={0} onOpen={setOpenId} />
+          <TripList
+            title="예정된 여행"
+            trips={upcoming}
+            startIndex={ongoing.length}
+            onOpen={setOpenId}
+          />
+          <TripList
+            title="다녀온 여행"
+            trips={past}
+            startIndex={ongoing.length + upcoming.length}
+            onOpen={setOpenId}
+          />
         </>
+      )}
+
+      {showCreateTrip && (
+        <CreateTripSheet
+          busy={tripActionBusy}
+          onClose={() => setShowCreateTrip(false)}
+          onCreate={(input) =>
+            void runTripAction(async () => {
+              const trip = await createTrip({
+                ...input,
+                ownerUid: user.uid,
+                ownerName: displayName,
+              })
+              setShowCreateTrip(false)
+              if (trip.kind === 'group') setJustCreatedTrip(trip)
+              return trip
+            })
+          }
+        />
+      )}
+
+      {showJoinTrip && (
+        <JoinTripModal
+          busy={tripActionBusy}
+          onClose={() => setShowJoinTrip(false)}
+          onJoin={(code) =>
+            void runTripAction(async () => {
+              const trip = await joinTripByCode(code, user.uid, displayName)
+              setShowJoinTrip(false)
+              return trip
+            })
+          }
+        />
       )}
     </section>
   )
 }
 
-/** "코드 입력" 팝업 — 초대 코드로 그룹 여행에 참여한다. 홈 탭에서 쓴다. */
+/** "코드 입력" 팝업 — 초대 코드로 그룹 여행에 참여한다. */
 export function JoinTripModal({
   busy,
   onClose,
@@ -228,10 +348,12 @@ export function CreateTripSheet({
 function TripList({
   title,
   trips,
+  startIndex,
   onOpen,
 }: {
   title: string
   trips: Trip[]
+  startIndex: number
   onOpen: (id: string) => void
 }) {
   if (trips.length === 0) return null
@@ -239,22 +361,26 @@ function TripList({
     <div>
       <p className="t-subtitle rainbow__label">{title}</p>
       <div className="group__list">
-        {[...trips]
-          .sort((a, b) => b.startDate.localeCompare(a.startDate))
-          .map((t) => (
-            <button key={t.id} className="group-card" onClick={() => onOpen(t.id)}>
-              <div>
-                <p className="t-subtitle">
-                  {t.name} <span className="t-caption">{t.kind === 'group' ? '· 그룹' : '· 개인'}</span>
-                </p>
-                <p className="t-caption group-card__sub">
-                  {t.startDate} ~ {t.endDate}
-                  {t.kind === 'group' ? ` · 멤버 ${t.memberUids.length}명 · 코드 ${t.inviteCode}` : ''}
-                </p>
-              </div>
-              <span className="t-caption group-card__go">›</span>
-            </button>
-          ))}
+        {trips.map((t, i) => (
+          <button
+            key={t.id}
+            className="group-card"
+            style={{ background: pastelRainbow(startIndex + i) }}
+            onClick={() => onOpen(t.id)}
+          >
+            <div>
+              <span className={'kind-tag t-caption' + (t.kind === 'group' ? ' kind-tag--group' : ' kind-tag--personal')}>
+                {t.kind === 'group' ? '그룹' : '개인'}
+              </span>
+              <p className="t-subtitle group-card__name">{t.name}</p>
+              <p className="t-caption group-card__sub">
+                {t.startDate} ~ {t.endDate}
+                {t.kind === 'group' ? ` · 멤버 ${t.memberUids.length}명 · 코드 ${t.inviteCode}` : ''}
+              </p>
+            </div>
+            <span className="t-caption group-card__go">›</span>
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -291,24 +417,42 @@ function TripDetail({
         </button>
       </div>
 
-      <h2 className="t-title">{trip.name}</h2>
+      <div className="group__title-row">
+        <h2 className="t-display">{trip.name}</h2>
+        {trip.kind === 'group' && trip.inviteCode && (
+          <button
+            className="t-caption group__invite"
+            title="눌러서 복사"
+            onClick={() => {
+              void navigator.clipboard?.writeText(trip.inviteCode ?? '')
+            }}
+          >
+            초대 코드
+            <br />
+            {trip.inviteCode}
+          </button>
+        )}
+      </div>
       <p className="t-caption group-card__sub">
         {trip.startDate} ~ {trip.endDate}
-        {trip.kind === 'group' ? ` · 초대 코드 ${trip.inviteCode}` : ''}
       </p>
 
       {/* 개인/그룹 상관없이 멤버 목록을 보여준다 — 개인은 만든 사람 혼자, 그룹은 초대로 들어온 사람까지. */}
       <div className="member-list">
         {Object.entries(trip.members).map(([memberUid, memberName]) => (
           <div key={memberUid} className="member-row">
-            <span className="member-row__avatar">{memberName.slice(0, 1)}</span>
+            <span className="member-row__avatar-wrap">
+              <span className="member-row__avatar">{memberName.slice(0, 1)}</span>
+              {memberUid === trip.ownerUid && (
+                <img className="member-row__crown" src={crownIcon} alt="방장" />
+              )}
+            </span>
             <span className="t-subtitle">{memberName}</span>
-            {memberUid === trip.ownerUid && <span className="t-caption member-row__badge">방장</span>}
           </div>
         ))}
       </div>
 
-      <PieceTimeline pieces={verified} />
+      <PieceTimeline pieces={verified} tripName={trip.name} />
 
       {confirmingLeave && (
         <ConfirmModal

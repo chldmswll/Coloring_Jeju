@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      // cloudflared 같은 터널로 폰에서 접속할 때 Vite가 낯선 Host 헤더를 막아버리는 걸 풀어준다.
+      allowedHosts: ['.trycloudflare.com'],
       proxy: {
         /**
          * TourAPI는 브라우저에서 직접 못 부른다 — Origin 헤더가 붙으면 403을 돌려주고

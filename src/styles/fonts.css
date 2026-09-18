@@ -1,0 +1,59 @@
+/*
+ * Pretendard 폰트 — npm 패키지 대신 src/font 에 직접 넣어둔 woff 파일로 등록한다.
+ * tokens.css 의 타이포 유틸(.t-body/.t-subtitle/.t-title/.t-display 등)이 쓰는 굵기를
+ * 전부 포함해 둔다.
+ */
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-Thin.woff') format('woff');
+  font-weight: 100;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-ExtraLight.woff') format('woff');
+  font-weight: 200;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-Light.woff') format('woff');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-Regular.woff') format('woff');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-Medium.woff') format('woff');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-Bold.woff') format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-ExtraBold.woff') format('woff');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../font/Pretendard-Black.woff') format('woff');
+  font-weight: 900;
+  font-display: swap;
+}

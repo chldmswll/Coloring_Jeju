@@ -36,10 +36,13 @@ export function StampIcon({ className }: IconProps) {
   )
 }
 
-export function PieceIcon({ className }: IconProps) {
+export function GalleryIcon({ className }: IconProps) {
   return (
     <svg {...shared} className={className}>
-      <path d="M9 4.5h4a1.6 1.6 0 0 1 1.6 2.4 1.7 1.7 0 0 0 0 3.2A1.6 1.6 0 0 1 16 12.5v3.5h-3.5a1.7 1.7 0 0 0-3.2 0H6v-3.5a1.6 1.6 0 0 1 2.4-1.6 1.7 1.7 0 0 0 0-3.2A1.6 1.6 0 0 1 9 4.5Z" />
+      <path d="M8 8V6.6A1.6 1.6 0 0 1 9.6 5h8.8A1.6 1.6 0 0 1 20 6.6v9a1.6 1.6 0 0 1-1.6 1.6H17" />
+      <rect x="4" y="8.5" width="13" height="11" rx="1.6" />
+      <circle cx="7.4" cy="11.7" r="1" fill="currentColor" stroke="none" />
+      <path d="m6 17 2.6-3 2 2 2.4-3 2.5 3.2" />
     </svg>
   )
 }

@@ -1,3 +1,4 @@
+import emptyRecordImg from '../assets/empty-record.png'
 import type { TripSpot } from '../types'
 
 /** ms 타임스탬프를 '2026.09.20', '14:32' 로 나눠 돌려준다. */
@@ -34,11 +35,18 @@ function fitPolaroidPhoto(img: HTMLImageElement) {
  * 사진은 테두리 없이 카드 전체를 채우고, 장소 이름과 남긴 문구는 사진 옆에 메모처럼 붙인다.
  * (조각모음 탭은 이거랑 다르게 갈 예정이라 별도 컴포넌트로 뒀다 — App.tsx 의 PieceAlbumDetail 참고.)
  */
-export function PieceTimeline({ pieces }: { pieces: TripSpot[] }) {
+export function PieceTimeline({ pieces, tripName }: { pieces: TripSpot[]; tripName: string }) {
   const ordered = [...pieces].sort((a, b) => (a.verifiedAt ?? 0) - (b.verifiedAt ?? 0))
 
   if (ordered.length === 0) {
-    return <div className="empty t-body">아직 인증한 곳이 없어요.</div>
+    return (
+      <div className="empty t-body">
+        <img className="timeline-empty__img" src={emptyRecordImg} alt="" />
+        첫 미션을 수행하고
+        <br />
+        이곳을 {tripName}의 기록으로 채워보세요!
+      </div>
+    )
   }
 
   return (

@@ -1,3 +1,9 @@
+/* 글자 옆에 나란히 쓰는 아이콘(체크·플러스 등) — 아이콘 혼자 쓰이는 자리에는 붙이지 않는다. */
+.icon-inline {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
 /* 모바일 웹 전용 레이아웃 — 가로가 넓은 화면에서도 폰 폭으로 가운데 정렬한다. */
 .app {
   max-width: 480px;
@@ -68,6 +74,11 @@
   text-align: center;
   color: var(--text-secondary);
 }
+.timeline-empty__img {
+  display: block;
+  width: 72px;
+  margin: 0 auto var(--space-md);
+}
 
 /* 스탬프 */
 .stamps {
@@ -98,8 +109,9 @@
   box-shadow: var(--shadow-card);
 }
 .stamp.is-done {
-  /* 완료된 곳은 카드 배경을 물들이지 않고, 살짝 옅은 회색 배경으로만 차분하게 구분한다. */
-  background: var(--off-white);
+  /* 완료된 곳은 아직 할 일과 뚜렷이 구분되도록 회색 배경으로 모아둔다. */
+  background: #e5e5e2;
+  border-color: #e5e5e2;
 }
 .stamp__mark-wrap {
   position: relative;
@@ -126,23 +138,6 @@
 .stamp__mark-photo.is-grayscale {
   filter: grayscale(1);
 }
-/* 완료 체크 배지 — 색과 상관없이 항상 같은 초록으로, "확실히 끝났다"는 느낌을 준다. */
-.stamp__mark-badge {
-  position: absolute;
-  right: -5px;
-  bottom: -5px;
-  width: 19px;
-  height: 19px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid var(--white);
-  color: var(--white);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-}
 .stamp__name {
   flex: 1;
   min-width: 0;
@@ -156,20 +151,17 @@
 .stamp__sub {
   color: var(--text-secondary);
 }
-/* 완료 배지 — 진한 초록 칩으로, 회색 텍스트보다 훨씬 "끝났다"는 느낌이 분명하다. */
-.stamp__done {
-  flex: none;
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  background: var(--primary);
-  color: var(--white);
-  font-weight: 700;
-  font-size: var(--font-caption-size);
-}
 .stamp__chevron {
   flex: none;
   color: var(--text-tertiary);
   font-size: 18px;
+}
+/* 완료/미완료 사이 구분선 — 두 그룹이 다 있을 때만 그려진다. */
+.stamps-divider {
+  width: 100%;
+  border: none;
+  border-top: 1.5px solid var(--border);
+  margin: var(--space-xs) 0;
 }
 
 /* 하단 탭바 */
@@ -493,6 +485,8 @@
   color: var(--text-secondary);
 }
 .place__add {
+  display: grid;
+  place-items: center;
   width: 34px;
   height: 34px;
   flex: none;
@@ -674,7 +668,7 @@
   justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-lg);
-  border: 1.5px solid var(--yellow);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--white);
   text-align: left;
@@ -682,8 +676,26 @@
 .group-card p {
   margin: 0;
 }
+.group-card__name {
+  margin-top: var(--space-xs);
+}
 .group-card__sub {
   color: var(--text-secondary);
+}
+/* 그룹/개인 표시 — 눌리지 않는 장식용 꼬리표라 카드 클릭과는 별개로 그냥 얹혀 있다. */
+.kind-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+.kind-tag--personal {
+  background: var(--mint);
+  color: var(--primary-deepest);
+}
+.kind-tag--group {
+  background: var(--pale-yellow);
+  color: var(--primary-deepest);
 }
 .group-card__go {
   font-size: 22px;
@@ -702,6 +714,19 @@
 }
 .group h2 {
   margin: 0;
+}
+.group__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+/* 초대 코드 — 제목 옆에 작게, 2줄로. 눌러서 복사한다. */
+.group__invite {
+  flex: none;
+  text-align: right;
+  line-height: 1.3;
+  color: var(--text-secondary);
 }
 
 /* 마이페이지 */
@@ -795,14 +820,18 @@
   min-width: 0;
 }
 
-/* 앨범 탭 상단 2단 버튼 — 왼쪽 여행 추가, 오른쪽 코드 입력. 둘 다 눌러야 팝업이 뜬다. */
+/* 여행 탭 상단 버튼 — 왼쪽 위에 작게 모아둔다. 여행 추가/코드 입력, 둘 다 누르면 팝업이 뜬다. */
 .album-actions {
   display: flex;
-  gap: var(--space-md);
+  justify-content: flex-start;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
 }
 .album-actions > * {
-  flex: 1;
-  text-align: center;
+  flex: none;
+  padding: 6px 12px;
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line);
 }
 
 /* 확인 팝업 본문 */
@@ -811,7 +840,7 @@
   color: var(--text-secondary);
 }
 
-/* 그룹 여행 생성 직후 초대 코드 카드 */
+/* 그룹 여행 생성 직후 뜨는 초대 코드 팝업 */
 .invite-card {
   background: var(--mint);
 }
@@ -963,11 +992,18 @@
   font-size: 14px;
   font-weight: 700;
 }
-.member-row__badge {
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-full);
-  background: var(--mint);
-  color: var(--primary-deepest);
+/* 방장 표시 — 아바타 오른쪽 위에 살짝 기울여 얹은 왕관 */
+.member-row__avatar-wrap {
+  position: relative;
+  flex: none;
+}
+.member-row__crown {
+  position: absolute;
+  top: -6px;
+  right: -7px;
+  width: 16px;
+  height: 16px;
+  transform: rotate(18deg);
 }
 
 /* 인증 타임라인 — 세로 줄기에 점을 찍고, 그 옆에 폴라로이드 카드를 하나씩 매단다 */
