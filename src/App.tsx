@@ -59,6 +59,25 @@ export default function App() {
 
 function MainApp({ user }: { user: import('firebase/auth').User }) {
   const [mainTab, setMainTab] = useState<MainTab>('홈')
+
+  // 기기 뒤로가기 — 홈이 아닌 탭에서는 홈으로, 홈에서는 그대로 웹을 떠난다. 홈을 떠날 때 기록을
+  // 딱 한 칸만 쌓아 두고(탭끼리 옮겨 다녀도 더 쌓지 않는다), 뒤로가기로 그 칸이 빠지면 홈으로 돌린다.
+  useEffect(() => {
+    const onPop = () => setMainTab('홈')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  function goTab(tab: MainTab) {
+    if (tab === mainTab) return
+    if (tab === '홈') {
+      // 쌓아 둔 한 칸을 빼면 popstate 가 홈으로 돌려준다 — 뒤로가기와 같은 길로 간다.
+      history.back()
+      return
+    }
+    if (mainTab === '홈') history.pushState({ tab }, '')
+    setMainTab(tab)
+  }
   const [homeMapView, setHomeMapView] = useState<HomeMapView>('추천 지도')
   const [openSpot, setOpenSpot] = useState<TripSpot | null>(null)
   const [verifying, setVerifying] = useState<TripSpot | null>(null)
@@ -306,7 +325,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             <button
               key={tab}
               className={'tabbar__item t-caption' + (mainTab === tab ? ' is-active' : '')}
-              onClick={() => setMainTab(tab)}
+              onClick={() => goTab(tab)}
             >
               <TabIcon className="tabbar__icon" />
               {tab}

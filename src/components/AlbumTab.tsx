@@ -20,6 +20,11 @@ function pastelRainbow(index: number): string {
   return `hsl(${(index * 32) % 360}, 65%, 93%)`
 }
 
+/** 같은 색상(hue)의 진한 톤 — 카드 화살표 색. 배경과 한 벌로 보이면서 또렷하게. */
+function pastelDeep(index: number): string {
+  return `hsl(${(index * 32) % 360}, 45%, 42%)`
+}
+
 /**
  * 여행 탭 — 만든/참여한 여행을 모아보고, 새 여행을 만들거나 코드로 참여하는 곳.
  *
@@ -383,7 +388,9 @@ function TripList({
                 </span>
               </p>
             </div>
-            <span className="t-caption group-card__go">›</span>
+            <span className="group-card__go" style={{ color: pastelDeep(startIndex + i) }}>
+              ›
+            </span>
           </button>
         ))}
       </div>
@@ -448,13 +455,10 @@ function TripDetail({
       <div className="member-list">
         {Object.entries(trip.members).map(([memberUid, memberName]) => (
           <div key={memberUid} className="member-row">
-            <span className="member-row__avatar-wrap">
-              <span className="member-row__avatar">{memberName.slice(0, 1)}</span>
-              {memberUid === trip.ownerUid && (
-                <img className="member-row__crown" src={crownIcon} alt="방장" />
-              )}
-            </span>
             <span className="t-subtitle">{memberName}</span>
+            {memberUid === trip.ownerUid && (
+              <img className="member-row__crown" src={crownIcon} alt="방장" />
+            )}
           </div>
         ))}
       </div>
@@ -463,10 +467,10 @@ function TripDetail({
 
       {confirmingLeave && (
         <ConfirmModal
-          title={isOwner ? '여행을 삭제할까요?' : '여행에서 나갈까요?'}
+          title={isOwner ? '정말 여행을 삭제하시겠습니까?' : '여행에서 나갈까요?'}
           body={
             isOwner
-              ? '삭제하면 이 여행에 담긴 장소와 인증 사진이 전부 함께 사라져요. 되돌릴 수 없어요.'
+              ? '삭제한 여행은 되돌릴 수 없습니다.'
               : '나가면 이 여행 목록에서 빠지고, 다시 보려면 초대 코드로 재참여해야 해요.'
           }
           confirmLabel={isOwner ? '삭제하기' : '나가기'}
