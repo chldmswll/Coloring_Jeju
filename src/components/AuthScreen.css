@@ -77,7 +77,7 @@
 
 .auth__error {
   margin: 0;
-  color: var(--orange);
+  color: var(--primary-dark);
 }
 
 .auth__submit {

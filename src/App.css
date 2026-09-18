@@ -655,7 +655,7 @@
   color: var(--text-secondary);
 }
 .search__error {
-  color: var(--orange);
+  color: var(--primary-dark);
 }
 
 .search__more {
@@ -878,7 +878,7 @@
   flex-direction: column;
   gap: var(--space-lg);
 }
-/* 여행 상세 화면 — 목록 카드와 같은 파스텔 색을 화면 배경으로 이어서 보여준다. */
+/* 여행 상세 화면 — 배경은 앱과 같은 흰색. */
 .group--detail {
   margin: calc(var(--space-xl) * -1);
   padding: var(--space-xl);
@@ -968,7 +968,7 @@
   color: var(--primary-deepest);
 }
 .group__leave {
-  color: var(--orange);
+  color: var(--primary-dark);
 }
 .group h2 {
   margin: 0;
@@ -1316,29 +1316,32 @@
   position: relative;
   padding-left: var(--space-xl);
 }
-.timeline::before {
-  content: '';
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 4px;
-  width: 2px;
-  background: var(--border);
-}
 .timeline__item {
   position: relative;
 }
-/* 동그라미 — 회색 테두리에 속은 투명, 세로선(가운데 x=5px) 한가운데에 오도록 12px 원을 -1px 에서 시작. */
+/* 동그라미 — 선과 같은 회색 테두리, 속은 흰색. 날짜·시간 한 줄(17px)의 가운데 높이에 맞춘다. */
 .timeline__item::before {
   content: '';
   position: absolute;
-  top: 4px;
+  z-index: 1;
+  top: 2.5px;
   left: calc(-1 * var(--space-xl) - 1px);
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: transparent;
-  border: 2px solid var(--text-tertiary);
+  background: var(--white);
+  border: 2px solid var(--border);
+}
+/* 세로선 — 항목마다 자기 동그라미에서 다음 동그라미까지만 긋는다. 마지막 항목은 긋지 않아서
+   타임라인이 동그라미로 끝난다. */
+.timeline__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 8.5px;
+  bottom: calc(-1 * var(--space-2xl) - 8.5px);
+  left: calc(-1 * var(--space-xl) + 4px);
+  width: 2px;
+  background: var(--border);
 }
 .timeline__meta {
   margin: 0 0 var(--space-sm);
@@ -1420,4 +1423,10 @@
   margin: var(--space-sm) 0 0;
   color: var(--text-secondary);
   font-size: 15px;
+}
+
+/* 안내만 하는 팝업(확인 버튼 하나) — 문장과 버튼 사이 간격 */
+.notice-modal__body {
+  margin: var(--space-sm) 0 var(--space-lg);
+  text-align: center;
 }

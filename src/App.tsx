@@ -81,6 +81,8 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
   const [homeMapView, setHomeMapView] = useState<HomeMapView>('추천 지도')
   const [openSpot, setOpenSpot] = useState<TripSpot | null>(null)
   const [verifying, setVerifying] = useState<TripSpot | null>(null)
+  // "이미 완료한 미션은 삭제할 수 없습니다" 안내 팝업
+  const [removeBlocked, setRemoveBlocked] = useState(false)
   // "함께 가면 좋은 곳" — 담은 직후 추천을 먼저 받아보고, 하나라도 있을 때만 시트를 띄운다.
   // 추천이 없는 장소는 아무 일도 없었던 것처럼 넘어간다.
   const [related, setRelated] = useState<{
@@ -354,8 +356,12 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
           onToggle={
             selectedTrip && !tripEnded
               ? () => {
-                  if (isOpenSaved) void removeTripSpot(selectedTrip.id, openSpot.contentId)
-                  else {
+                  if (isOpenSaved) {
+                    // 이 여행에서 이미 인증을 마친 곳은 빼지 못하게 막는다 — 인증 사진·색까지 같이 사라진다.
+                    const done = tripSpots.some((s) => s.contentId === openSpot.contentId && s.verifiedColor)
+                    if (done) return setRemoveBlocked(true)
+                    void removeTripSpot(selectedTrip.id, openSpot.contentId)
+                  } else {
                     void addTripSpot(selectedTrip.id, openSpot)
                     suggestRelated(openSpot, selectedTrip.id)
                   }
@@ -377,6 +383,19 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
 
       {verifying && selectedTrip && (
         <VerifySheet tripId={selectedTrip.id} spot={verifying} onClose={() => setVerifying(null)} />
+      )}
+
+      {removeBlocked && (
+        <div className="modal-scrim" onClick={() => setRemoveBlocked(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <p className="t-body notice-modal__body">이미 완료한 미션은 삭제할 수 없습니다.</p>
+            <div className="verify__actions">
+              <button className="btn-primary t-button" onClick={() => setRemoveBlocked(false)}>
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -75,21 +75,18 @@ export function AlbumTab({
     }
   }
 
-  // 여행 카드를 위에서 아래로 훑을 때 색이 이어지도록, 세 그룹을 하나의 순서로 잇는다.
+  // 여행 카드를 위에서 아래로 훑을 때 색이 이어지도록, 세 그룹을 하나의 순서(startIndex)로 잇는다.
   const ongoing = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'ongoing'))
   const upcoming = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'upcoming'))
   const past = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'past'))
-  const ordered = [...ongoing, ...upcoming, ...past]
 
   if (openId) {
     const trip = trips.find((t) => t.id === openId)
     if (trip) {
-      const colorIndex = ordered.findIndex((t) => t.id === openId)
       return (
         <TripDetail
           trip={trip}
           uid={user.uid}
-          background={pastelRainbow(colorIndex)}
           onBack={() => setOpenId(null)}
           onLeave={() =>
             void run(async () => {
@@ -401,13 +398,11 @@ function TripList({
 function TripDetail({
   trip,
   uid,
-  background,
   onBack,
   onLeave,
 }: {
   trip: Trip
   uid: string
-  background: string
   onBack: () => void
   onLeave: () => void
 }) {
@@ -419,7 +414,7 @@ function TripDetail({
   const isOwner = trip.ownerUid === uid
 
   return (
-    <section className="group group--detail" style={{ background }}>
+    <section className="group group--detail">
       <div className="group__head">
         <button className="t-subtitle group__back" onClick={onBack}>
           ‹ 여행 목록
