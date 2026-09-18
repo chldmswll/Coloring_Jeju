@@ -7,7 +7,7 @@ import type { TripSpot } from '../types'
  * 색 인증 — 사진을 찍고, 그 사진에서 뽑은 색 중 하나를 골라 장소에 기록한다.
  *
  * 이 한 번의 쓰기(markTripSpotVerified)가 스탬프 행을 인증완료로 바꾸고, 지도 마커를
- * 흑백에서 컬러로 돌리고, 무지개 한 칸을 채우고, 조각모음 앨범에 카드로 남긴다. 화면들이
+ * 흑백에서 컬러로 돌리고, 앨범 탭에 그 여행의 조각으로 남긴다. 화면들이
  * 전부 같은 값 하나(여행의 spots)에서 파생되므로 서로 어긋날 수가 없다.
  *
  * `capture="environment"` 덕에 폰에서는 바로 후면 카메라가 열리고, PC 에서는 파일 선택이 뜬다.
@@ -58,7 +58,7 @@ export function VerifySheet({
         <div className="sheet__handle" />
         <h2 className="t-title">{spot.title}</h2>
         <p className="t-caption sheet__addr">
-          사진을 찍으면 그 장소의 색을 뽑아 무지개에 담아요.
+          사진을 찍으면 그 장소의 색을 뽑아 담아요.
         </p>
 
         <div className="verify__frame">

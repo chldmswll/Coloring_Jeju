@@ -57,7 +57,15 @@ async function fileToSmallDataUrl(file: File): Promise<string> {
  * 중에 다른 탭으로 옮기면(마이페이지가 언마운트되면) 그 기록은 그냥 사라진다. 다시 마이 탭에
  * 오면 항상 연필 아이콘(수정 전 상태)부터 다시 시작한다.
  */
-export function MyPage({ user, allSpots }: { user: User; allSpots: TripSpot[] }) {
+export function MyPage({
+  user,
+  allSpots,
+  tripCount,
+}: {
+  user: User
+  allSpots: TripSpot[]
+  tripCount: number
+}) {
   const [name, setName] = useState(user.displayName ?? '')
   const [editing, setEditing] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -167,8 +175,8 @@ export function MyPage({ user, allSpots }: { user: User; allSpots: TripSpot[] })
           <p className="t-caption stamp__sub">인증 완료</p>
         </div>
         <div className="stat">
-          <p className="t-display">{verified}</p>
-          <p className="t-caption stamp__sub">모은 조각</p>
+          <p className="t-display">{tripCount}</p>
+          <p className="t-caption stamp__sub">여행</p>
         </div>
       </div>
 

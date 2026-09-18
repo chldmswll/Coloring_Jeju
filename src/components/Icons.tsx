@@ -36,6 +36,50 @@ export function PencilIcon({ className }: IconProps) {
   )
 }
 
+/** 저장(내려받기) — 아래로 향한 화살표와 받침. */
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <svg className={className} width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3.5v11m0 0 4.5-4.5M12 14.5 7.5 10"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.5 17.5v1a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+/** 초대 코드 복사 — 종이 두 장이 겹친 모양. */
+export function CopyIcon({ className }: IconProps) {
+  return (
+    <svg className={className} width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect
+        x="9"
+        y="9"
+        width="11"
+        height="11"
+        rx="2.5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M5.5 15H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export function AddIcon({ className }: IconProps) {
   return (
     <svg className={className} width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">

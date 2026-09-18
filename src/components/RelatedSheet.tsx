@@ -61,33 +61,24 @@ export function RelatedSheet({
                     {[it.category, it.region].filter(Boolean).join(' · ')}
                   </span>
                 </span>
+                {/* 담는 버튼은 홈의 여행지 목록과 같은 모양·동작으로 맞춘다 — 누르면 바로 담긴다. */}
                 <button
-                  className={'related__add t-caption' + (added ? ' is-added' : '')}
+                  className={'place__add' + (added ? ' is-added' : '')}
                   disabled={added}
+                  aria-label={added ? `${it.name} 담음` : `${it.name} 담기`}
                   onClick={() => onAdd(it.spot)}
                 >
-                  {added ? (
-                    <>
-                      <CheckIcon className="icon-inline" /> 담음
-                    </>
-                  ) : (
-                    <>
-                      <AddIcon className="icon-inline" /> 담기
-                    </>
-                  )}
+                  {added ? <CheckIcon /> : <AddIcon />}
                 </button>
               </li>
             )
           })}
         </ol>
 
+        {/* 닫기 버튼은 두지 않는다 — 시트 밖(어두운 부분)을 누르면 닫힌다. */}
         <p className="t-caption related__source">
           한국관광공사 데이터랩 · {result.baseYm.slice(0, 4)}년 {Number(result.baseYm.slice(4))}월 기준
         </p>
-
-        <button className="btn-primary t-button related__close" onClick={onClose}>
-          확인
-        </button>
       </div>
     </div>
   )

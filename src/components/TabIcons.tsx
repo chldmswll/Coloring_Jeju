@@ -23,6 +23,16 @@ export function HomeIcon({ className }: IconProps) {
   )
 }
 
+/** 여행 탭 — 종이비행기. 꼬리에 접힌 자국을 하나 넣어 "접은 종이"로 읽히게 한다. */
+export function PlaneIcon({ className }: IconProps) {
+  return (
+    <svg {...shared} className={className}>
+      <path d="M20.6 3.6 3.9 10.2c-.7.3-.7 1.3 0 1.5l6.2 2.2 2.2 6.2c.2.7 1.2.7 1.5 0l6.6-16.7c.2-.5-.2-1-.8-.8Z" />
+      <path d="m20.4 3.8-10.3 10.1" />
+    </svg>
+  )
+}
+
 export function StampIcon({ className }: IconProps) {
   return (
     <svg {...shared} className={className}>

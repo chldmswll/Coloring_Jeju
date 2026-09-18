@@ -102,7 +102,8 @@ function onlyAttractions(spots: TourSpot[]): TourSpot[] {
   return spots.filter((s) => ATTRACTION_TYPE_IDS.has(s.contentTypeId))
 }
 
-const LIST_PAGE_SIZE = 40
+/** 목록은 한 번에 이만큼만 — 목록 안에서 따로 스크롤하지 않고, "더 보기"를 눌러야 늘어난다. */
+const LIST_PAGE_SIZE = 12
 
 /**
  * 제주 지역 목록 조회. 검색어가 비었을 때 기본으로 보여줄 목록. 한 페이지씩 받는다.

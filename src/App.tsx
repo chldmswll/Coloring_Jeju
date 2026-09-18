@@ -8,10 +8,10 @@ import { SearchSheet } from './components/SearchSheet'
 import { VerifySheet } from './components/VerifySheet'
 import recommendedSpots from './data/recommendedSpots.json'
 import { JejuMap, type MapPin } from './map/JejuMap'
-import { HomeIcon, StampIcon, GalleryIcon, AlbumIcon, MyIcon } from './components/TabIcons'
+import { HomeIcon, StampIcon, GalleryIcon, PlaneIcon, MyIcon } from './components/TabIcons'
 import { AlbumTab } from './components/AlbumTab'
 import { AddIcon } from './components/Icons'
-import { Pamphlet, PamphletPreview } from './components/Pamphlet'
+import { GalleryTab } from './components/GalleryTab'
 import { RelatedSheet } from './components/RelatedSheet'
 import { relatedAttractions, type RelatedResult } from './api/relatedApi'
 import {
@@ -20,7 +20,6 @@ import {
   tripStatus,
   watchAllTripSpots,
   watchMyTrips,
-  type TripStatus,
 } from './firebase/trips'
 import type { RecommendedSpot, Trip, TripSpot, TourSpot } from './types'
 import './App.css'
@@ -37,7 +36,7 @@ const TAB_ICON: Record<MainTab, typeof HomeIcon> = {
   홈: HomeIcon,
   스탬프: StampIcon,
   앨범: GalleryIcon,
-  여행: AlbumIcon,
+  여행: PlaneIcon,
   마이: MyIcon,
 }
 
@@ -192,7 +191,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             </select>
           )}
         </div>
-        <p className="t-body app-header__sub">이번 여행의 무지개를 채워보세요</p>
+        <p className="t-body app-header__sub">제주에서 만난 색을 모아보세요</p>
       </header>
 
       <main className="app-main">
@@ -228,9 +227,7 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             )}
 
             <div className="add-panel">
-              <h2 className="t-title">
-                {selectedTrip ? `${selectedTrip.name}에 여행지 추가하기` : '여행지 추가하기'}
-              </h2>
+              <h2 className="t-title">여행지 추가하기</h2>
               {selectedTrip ? (
                 tripEnded ? (
                   <p className="t-caption app-hint">
@@ -238,9 +235,6 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
                   </p>
                 ) : (
                   <>
-                    <p className="t-caption app-hint">
-                      추천 여행지 {RECOMMENDED.length}곳 · 총 {tripSpots.length}곳 추가됨
-                    </p>
                     <SearchSheet
                       savedIds={savedIds}
                       onToggle={(spot) => {
@@ -280,11 +274,13 @@ function MainApp({ user }: { user: import('firebase/auth').User }) {
             </div>
           ))}
 
-        {mainTab === '앨범' && <PieceGrid trips={trips} spotsByTrip={spotsByTrip} />}
+        {mainTab === '앨범' && <GalleryTab trips={trips} spotsByTrip={spotsByTrip} />}
         {mainTab === '여행' && (
           <AlbumTab user={user} trips={trips} onTripSelect={setSelectedTripId} />
         )}
-        {mainTab === '마이' && <MyPage user={user} allSpots={allSpots} />}
+        {mainTab === '마이' && (
+          <MyPage user={user} allSpots={allSpots} tripCount={trips.length} />
+        )}
       </main>
 
       <nav className="tabbar">
@@ -462,122 +458,6 @@ function StampPhoto({ src, grayscale }: { src: string | null; grayscale: boolean
   )
 }
 
-const STATUS_LABEL: Record<TripStatus, string> = {
-  ongoing: '여행중',
-  upcoming: '예정',
-  past: '완료',
-}
-
-/**
- * 조각모음 — 여행 하나가 앨범(폴더) 하나. 목록에서는 표지 카드만 보여주고, 눌러서 들어가야
- * 그 여행에서 인증한 사진·장소 이름이 쭉 나온다. 여행중·예정·완료로 나눠서, 사이는 구분선으로.
- */
-function PieceGrid({
-  trips,
-  spotsByTrip,
-}: {
-  trips: Trip[]
-  spotsByTrip: Record<string, TripSpot[]>
-}) {
-  const [openTripId, setOpenTripId] = useState<string | null>(null)
-
-  if (trips.length === 0) {
-    return (
-      <div className="empty t-body">
-        아직 만든 여행이 없어요.
-        <br />
-        "여행" 탭에서 여행을 만들면 여기 앨범으로 쌓여요.
-      </div>
-    )
-  }
-
-  if (openTripId) {
-    const trip = trips.find((t) => t.id === openTripId)
-    if (trip) {
-      return (
-        <PieceAlbumDetail
-          trip={trip}
-          pieces={(spotsByTrip[trip.id] ?? []).filter((s) => s.verifiedColor)}
-          onBack={() => setOpenTripId(null)}
-        />
-      )
-    }
-  }
-
-  const groups = (['ongoing', 'upcoming', 'past'] as TripStatus[])
-    .map((status) => ({
-      status,
-      trips: trips.filter((t) => tripStatus(t) === status).sort((a, b) => b.startDate.localeCompare(a.startDate)),
-    }))
-    .filter((g) => g.trips.length > 0)
-
-  return (
-    <div className="albums">
-      {groups.map((group, i) => (
-        <div key={group.status} className="album-group">
-          {i > 0 && <hr className="album-divider" />}
-          <p className="t-subtitle rainbow__label">{STATUS_LABEL[group.status]}</p>
-          <div className="group__list">
-            {group.trips.map((trip) => {
-              const pieces = (spotsByTrip[trip.id] ?? []).filter((s) => s.verifiedColor)
-              return (
-                <div key={trip.id} className="album-card">
-                  <div className="album-card__row">
-                    <PamphletPreview trip={trip} pieces={pieces} />
-                    <div className="album-card__info">
-                      <p className="t-subtitle">{trip.name}</p>
-                      <p className="t-caption group-card__sub">
-                        {trip.startDate} ~ {trip.endDate}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    className="pill t-subtitle album-card__make"
-                    onClick={() => setOpenTripId(trip.id)}
-                  >
-                    팜플렛 만들기
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/**
- * 앨범(폴더) 하나를 열었을 때 — 인증한 사진들을 콜라주 한 장(팜플렛)으로 자동으로 모아 보여준다.
- *
- * 여행 탭(AlbumTab)의 여행 상세에는 시간순 타임라인이 따로 있다 — 조각모음은 지나온 여행을
- * "기록"이 아니라 "한 장의 결과물"로 남기는 화면이라 의도적으로 다르게 뒀다.
- */
-function PieceAlbumDetail({
-  trip,
-  pieces,
-  onBack,
-}: {
-  trip: Trip
-  pieces: TripSpot[]
-  onBack: () => void
-}) {
-  return (
-    <section className="album">
-      <button className="t-subtitle group__back" onClick={onBack}>
-        ‹ 앨범 목록
-      </button>
-      <div className="album__head">
-        <p className="t-title">{trip.name}</p>
-        <p className="t-caption stamp__sub">
-          {trip.startDate} ~ {trip.endDate}
-        </p>
-      </div>
-
-      <Pamphlet trip={trip} pieces={pieces} />
-    </section>
-  )
-}
 
 function PlaceSheet({
   spot,

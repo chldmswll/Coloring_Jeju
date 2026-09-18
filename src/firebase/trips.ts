@@ -218,7 +218,7 @@ export async function removeTripSpot(tripId: string, contentId: string) {
 }
 
 /**
- * 인증 — 색·사진·문구·시각을 한 번에 기록한다. 스탬프 완료, 지도 마커 컬러화, 무지개·조각모음
+ * 인증 — 색·사진·문구·시각을 한 번에 기록한다. 스탬프 완료, 지도 마커 컬러화, 앨범
  * 타임라인이 전부 이 값에서 파생된다.
  */
 export async function markTripSpotVerified(

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { User } from 'firebase/auth'
 import crownIcon from '../assets/crown.svg'
 import { createTrip, joinTripByCode, leaveTrip, tripStatus, watchTripSpots } from '../firebase/trips'
-import { AddIcon } from './Icons'
+import { AddIcon, CopyIcon } from './Icons'
 import { PieceTimeline } from './PieceTimeline'
 import type { Trip, TripKind, TripSpot } from '../types'
 
@@ -15,7 +15,7 @@ function sortByStartDateDesc(trips: Trip[]): Trip[] {
   return [...trips].sort((a, b) => b.startDate.localeCompare(a.startDate))
 }
 
-/** 여행 카드 배경 — 목록을 위에서 아래로 훑을 때 아주 옅은 파스텔 무지개가 이어지도록. */
+/** 여행 카드 배경 — 목록을 위에서 아래로 훑을 때 아주 옅은 파스텔 색이 이어지도록. */
 function pastelRainbow(index: number): string {
   return `hsl(${(index * 32) % 360}, 65%, 93%)`
 }
@@ -70,7 +70,7 @@ export function AlbumTab({
     }
   }
 
-  // 여행 컴포넌트를 위에서 아래로 훑을 때 무지개가 이어지도록, 세 그룹을 하나의 순서로 잇는다.
+  // 여행 카드를 위에서 아래로 훑을 때 색이 이어지도록, 세 그룹을 하나의 순서로 잇는다.
   const ongoing = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'ongoing'))
   const upcoming = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'upcoming'))
   const past = sortByStartDateDesc(trips.filter((t) => tripStatus(t) === 'past'))
@@ -123,12 +123,14 @@ export function AlbumTab({
             <div className="group__row">
               <span className="t-display invite-card__code">{justCreatedTrip.inviteCode}</span>
               <button
-                className="pill t-subtitle"
+                className="pill invite-card__copy"
+                aria-label="초대 코드 복사"
+                title="초대 코드 복사"
                 onClick={() => {
                   void navigator.clipboard?.writeText(justCreatedTrip.inviteCode ?? '')
                 }}
               >
-                복사
+                <CopyIcon />
               </button>
             </div>
           </div>
@@ -362,7 +364,7 @@ function TripList({
   if (trips.length === 0) return null
   return (
     <div>
-      <p className="t-subtitle rainbow__label">{title}</p>
+      <p className="t-subtitle section-label">{title}</p>
       <div className="group__list">
         {trips.map((t, i) => (
           <button

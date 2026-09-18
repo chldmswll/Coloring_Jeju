@@ -1,37 +1,51 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Trip, TripSpot } from '../types'
+import { DownloadIcon } from './Icons'
+import type { TripSpot } from '../types'
 
 /**
- * 조각모음 — 여행 하나에서 인증한 사진들을 자동으로 콜라주 한 장으로 모아준다("팜플렛").
- * 나무 책상 위에 펼쳐둔 다이어리 — 오른쪽 페이지에 폴라로이드를 스크랩하고 아래에 여행
- * 제목을 손글씨로 적은 모습을 캔버스로 그린다. 사진이 없는 곳은 그때 뽑은 색으로 대신 채운다.
+ * 콜라주 — 고른 사진들을 가로로 긴 한 장으로 모아준다. 폴라로이드 카드 색은 두 테마 모두
+ * 그 사진에서 뽑은 색이다.
  *
- * 그리는 로직(drawPamphlet)은 앨범 목록의 작은 미리보기(PamphletPreview)와 상세 화면의
- * 큰 버전(Pamphlet) 둘 다에서 그대로 재사용한다 — 같은 콜라주를 크기만 다르게 보여주는 것이므로.
+ * 테마는 두 가지다.
+ * - 노트: 나무 책상 위에 펼쳐둔 다이어리에 스크랩한 모습
+ * - 파스텔: 점무늬 종이에 별·음표 낙서를 곁들인 밝은 모습
  */
 
-const CANVAS_W = 940
-/** 책상 나무가 보이는 바깥 여백 — 넉넉해야 "책상 위에 놓인 노트"로 읽힌다. */
-const DESK_MARGIN = 62
-/** 왼쪽 빈 페이지가 책 너비에서 차지하는 비율 — 나머지가 사진을 붙이는 오른쪽 페이지. */
-const LEFT_PAGE_RATIO = 0.15
-/** 책 가운데 접힌 부분(어두운 그림자 줄)의 너비. */
+export type CollageTheme = '노트' | '파스텔'
+export const COLLAGE_THEMES: CollageTheme[] = ['노트', '파스텔']
+
+/** 콜라주 한 장에 들어가는 내용 — 어느 여행인지는 부르는 쪽이 정해서 넘긴다. */
+export interface CollageInput {
+  title: string
+  period: string
+  photographers?: string
+  pieces: TripSpot[]
+  theme: CollageTheme
+}
+
+/** 가로로 긴 한 장. */
+const CANVAS_W = 1280
+const CANVAS_H = 820
+
+/** 노트 테마 — 책상 나무가 보이는 바깥 여백과 펼친 책의 지면. */
+const DESK_MARGIN = 40
+const LEFT_PAGE_RATIO = 0.13
 const SPINE_W = 14
-/** 오른쪽 페이지 안쪽 좌우 여백. */
 const PAGE_PAD = 26
-/** 페이지 위쪽, 삐져나온 사진 소품을 위해 비워두는 공간. */
-const TOP_PEEK = 46
-const GRID_H = 660
-const TITLE_GAP = 30
-const TITLE_BLOCK_H = 210
-const PAGE_BOTTOM_PAD = 40
+const TOP_PEEK = 34
+const TITLE_GAP = 18
+const TITLE_BLOCK_H = 150
+const PAGE_BOTTOM_PAD = 26
 
 const BOOK_W = CANVAS_W - DESK_MARGIN * 2
-const BOOK_H = TOP_PEEK + GRID_H + TITLE_GAP + TITLE_BLOCK_H + PAGE_BOTTOM_PAD
-const CANVAS_H = BOOK_H + DESK_MARGIN * 2
+const BOOK_H = CANVAS_H - DESK_MARGIN * 2
+const GRID_H = BOOK_H - TOP_PEEK - TITLE_GAP - TITLE_BLOCK_H - PAGE_BOTTOM_PAD
 const LEFT_PAGE_W = BOOK_W * LEFT_PAGE_RATIO
 const RIGHT_PAGE_X = DESK_MARGIN + LEFT_PAGE_W + SPINE_W
 const RIGHT_PAGE_W = BOOK_W - LEFT_PAGE_W - SPINE_W
+
+/** 파스텔 테마 — 종이 가장자리 여백. */
+const PASTEL_PAD = 56
 
 /** 타일이 이보다 많으면 마지막 칸을 "+N"으로 접어 넣는다 — 사진이 너무 잘게 쪼개지지 않게. */
 const MAX_TILES = 9
@@ -48,13 +62,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject
     img.src = src
   })
-}
-
-/** 사진 개수에 맞춰 정사각형에 가까운 격자(열x행)를 정한다. 미리 짜둔 배치가 없는 개수(7장+)에만 쓴다. */
-function gridFor(n: number): { cols: number; rows: number } {
-  const cols = Math.max(1, Math.ceil(Math.sqrt(n)))
-  const rows = Math.max(1, Math.ceil(n / cols))
-  return { cols, rows }
 }
 
 function roundRectPath(
@@ -423,91 +430,36 @@ function drawMapleLeaf(
 /** 폴라로이드 하나씩 번갈아 기울어지게 — 매번 랜덤이면 새로고침마다 들썩여서 고정 패턴을 쓴다. */
 const TILT_DEG = [-7, 6, -9, 5, -6, 8, -5, 7, -8]
 
-/**
- * 자연스럽게 겹쳐 붙인 느낌을 내려고, 사진이 적을 때(1~6장)는 미리 잡아둔 배치를 쓰고,
- * 그보다 많으면 격자로 떨어진다. x/y 는 그리드 영역 안에서의 비율(0~1), scale 은 크기 배수.
- */
-const CLUSTER_LAYOUTS: Record<
-  number,
-  { base: number; slots: { x: number; y: number; scale: number }[] }
-> = {
-  1: { base: 0.62, slots: [{ x: 0.5, y: 0.46, scale: 1 }] },
-  2: {
-    base: 0.46,
-    slots: [
-      { x: 0.35, y: 0.32, scale: 1.05 },
-      { x: 0.65, y: 0.66, scale: 1 },
-    ],
-  },
-  3: {
-    base: 0.38,
-    slots: [
-      { x: 0.3, y: 0.24, scale: 0.95 },
-      { x: 0.72, y: 0.36, scale: 1.08 },
-      { x: 0.42, y: 0.72, scale: 1.02 },
-    ],
-  },
-  4: {
-    base: 0.34,
-    slots: [
-      { x: 0.28, y: 0.22, scale: 0.94 },
-      { x: 0.72, y: 0.34, scale: 1.06 },
-      { x: 0.31, y: 0.66, scale: 1.02 },
-      { x: 0.73, y: 0.79, scale: 0.98 },
-    ],
-  },
-  5: {
-    base: 0.29,
-    slots: [
-      { x: 0.24, y: 0.19, scale: 0.95 },
-      { x: 0.66, y: 0.16, scale: 1.06 },
-      { x: 0.79, y: 0.5, scale: 0.94 },
-      { x: 0.27, y: 0.55, scale: 1.02 },
-      { x: 0.58, y: 0.82, scale: 1 },
-    ],
-  },
-  6: {
-    base: 0.25,
-    slots: [
-      { x: 0.2, y: 0.16, scale: 0.94 },
-      { x: 0.55, y: 0.14, scale: 1.04 },
-      { x: 0.83, y: 0.36, scale: 0.94 },
-      { x: 0.2, y: 0.52, scale: 1 },
-      { x: 0.53, y: 0.62, scale: 1.06 },
-      { x: 0.8, y: 0.83, scale: 0.94 },
-    ],
-  },
-}
+/** 카드마다 위아래로 조금씩 어긋나게 — 일렬로 딱 맞으면 인쇄물처럼 뻣뻣해 보인다. */
+const OFFSET_RATIO = [-0.07, 0.06, -0.04, 0.08, -0.06, 0.05, -0.08, 0.04, -0.05]
 
-function clusterLayout(
+/**
+ * 가로로 긴 판이라, 사진을 왼쪽에서 오른쪽으로 죽 늘어놓는다(많으면 두 줄).
+ * 카드 전체 높이는 사진 가로변의 약 1.3배라, 칸 너비와 높이 양쪽에 맞춰 크기를 정한다.
+ */
+function collageLayout(
   n: number,
   gridX: number,
   gridY: number,
   gridW: number,
   gridH: number,
 ): { cx: number; cy: number; size: number }[] {
-  const layout = CLUSTER_LAYOUTS[n]
-  if (layout) {
-    // base 배수는 "한마디까지 달린 가장 높은 카드"가 자기 자리에 들어가는 값으로 잡아뒀다.
-    const base = Math.min(gridW, gridH) * layout.base
-    return layout.slots.map((s) => ({
-      cx: gridX + s.x * gridW,
-      cy: gridY + s.y * gridH,
-      size: base * s.scale,
-    }))
-  }
-  // 미리 잡아둔 배치가 없을 만큼 많으면(7장+) 격자로 떨어진다.
-  const { cols, rows } = gridFor(n)
-  const cellW = gridW / cols
+  const rows = n > 5 ? 2 : 1
+  const perRow = Math.ceil(n / rows)
+  const cellW = gridW / perRow
   const cellH = gridH / rows
-  // 카드 전체 높이가 사진 가로변의 약 1.26배라, 칸 높이에도 맞춰 잡아야 위아래로 안 넘친다.
-  const size = Math.min(cellW / 1.2, cellH / 1.3)
+  const size = Math.min(cellW / 1.22, cellH / 1.42)
+
   return Array.from({ length: n }, (_, i) => {
-    const col = i % cols
-    const row = Math.floor(i / cols)
+    const row = Math.floor(i / perRow)
+    const col = i % perRow
+    // 마지막 줄이 덜 찼으면 가운데로 모아 한쪽이 비어 보이지 않게 한다.
+    const inRow = row === rows - 1 ? n - perRow * row : perRow
+    const rowW = cellW * inRow
+    const rowX = gridX + (gridW - rowW) / 2
     return {
-      cx: gridX + col * cellW + cellW / 2,
-      cy: gridY + row * cellH + cellH / 2,
+      cx: rowX + col * cellW + cellW / 2,
+      cy: gridY + row * cellH + cellH / 2 + cellH * OFFSET_RATIO[i % OFFSET_RATIO.length],
       size,
     }
   })
@@ -529,9 +481,10 @@ function drawPolaroid(
     color: string
     title: string
     caption: string | null
+    tapeColor: string
   },
 ) {
-  const { cx, cy, size, rotationDeg, img, color, title, caption } = opts
+  const { cx, cy, size, rotationDeg, img, color, title, caption, tapeColor } = opts
   // 사진은 정사각형이 아니라 가로로 살짝 긴 4:3 — 종이 사진에 더 가깝다.
   const photoW = size
   const photoH = size * 0.78
@@ -608,10 +561,10 @@ function drawPolaroid(
   ctx.rotate(((rotationDeg >= 0 ? -1 : 1) * 17 * Math.PI) / 180)
   const tapeW = frameW * 0.46
   const tapeH = frameW * 0.16
-  ctx.fillStyle = 'rgba(226, 206, 168, 0.82)'
+  ctx.fillStyle = tapeColor
   ctx.fillRect(-tapeW / 2, -tapeH / 2, tapeW, tapeH)
   // 테이프 양 끝을 살짝 진하게 — 종이에 눌러 붙인 느낌.
-  ctx.fillStyle = 'rgba(198, 176, 134, 0.5)'
+  ctx.fillStyle = 'rgba(120, 100, 70, 0.14)'
   ctx.fillRect(-tapeW / 2, -tapeH / 2, tapeW * 0.08, tapeH)
   ctx.fillRect(tapeW / 2 - tapeW * 0.08, -tapeH / 2, tapeW * 0.08, tapeH)
   ctx.restore()
@@ -619,9 +572,103 @@ function drawPolaroid(
   ctx.restore()
 }
 
+/* ───────────────────── 파스텔 테마 ───────────────────── */
+
+const PASTEL_INK = ['#f3a8c4', '#a9c8ef', '#f7d98a', '#a9ddc5', '#c9b6e8']
+
+/** 별 하나 — 네 갈래가 볼록하게 들어간 반짝이 모양. */
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.beginPath()
+  ctx.moveTo(0, -r)
+  ctx.quadraticCurveTo(r * 0.18, -r * 0.18, r, 0)
+  ctx.quadraticCurveTo(r * 0.18, r * 0.18, 0, r)
+  ctx.quadraticCurveTo(-r * 0.18, r * 0.18, -r, 0)
+  ctx.quadraticCurveTo(-r * 0.18, -r * 0.18, 0, -r)
+  ctx.closePath()
+  ctx.fillStyle = color
+  ctx.fill()
+  ctx.restore()
+}
+
+/** 음표 하나 — 머리 하나에 기둥과 깃발. */
+function drawNote(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, color: string) {
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(-0.2)
+  ctx.fillStyle = color
+  ctx.strokeStyle = color
+  ctx.lineWidth = s * 0.16
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.ellipse(-s * 0.35, s * 0.55, s * 0.4, s * 0.3, -0.35, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(s * 0.02, s * 0.5)
+  ctx.lineTo(s * 0.02, -s * 0.8)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(s * 0.02, -s * 0.8)
+  ctx.quadraticCurveTo(s * 0.75, -s * 0.5, s * 0.5, s * 0.02)
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** 파스텔 종이 — 옅은 점무늬 바탕에 별·음표 낙서를 흩뿌린다. */
+function drawPastelScene(ctx: CanvasRenderingContext2D) {
+  const grad = ctx.createLinearGradient(0, 0, CANVAS_W, CANVAS_H)
+  grad.addColorStop(0, '#fffdf6')
+  grad.addColorStop(0.5, '#fdf7f3')
+  grad.addColorStop(1, '#f4f7fd')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+  // 점무늬 — 규칙적으로 깔되 아주 옅게.
+  ctx.save()
+  ctx.globalAlpha = 0.5
+  for (let y = 24; y < CANVAS_H; y += 34) {
+    for (let x = 24 + ((y / 34) % 2) * 17; x < CANVAS_W; x += 34) {
+      ctx.beginPath()
+      ctx.arc(x, y, 1.7, 0, Math.PI * 2)
+      ctx.fillStyle = (x + y) % 3 === 0 ? '#f6d7e4' : '#dfe7f6'
+      ctx.fill()
+    }
+  }
+  ctx.restore()
+
+  // 낙서 — 자리는 고정 시드로 정해서 다시 그려도 안 들썩인다.
+  const rand = seededRandom(424242)
+  for (let i = 0; i < 26; i++) {
+    const x = 30 + rand() * (CANVAS_W - 60)
+    const y = 30 + rand() * (CANVAS_H - 60)
+    const color = PASTEL_INK[Math.floor(rand() * PASTEL_INK.length)]
+    ctx.save()
+    ctx.globalAlpha = 0.55 + rand() * 0.35
+    if (i % 4 === 0) drawNote(ctx, x, y, 12 + rand() * 8, color)
+    else drawStar(ctx, x, y, 6 + rand() * 9, color)
+    ctx.restore()
+  }
+  overlayGrain(ctx, 0, 0, CANVAS_W, CANVAS_H, 0.08)
+}
+
 /* ───────────────────── 조립 ───────────────────── */
 
-async function drawPamphlet(canvas: HTMLCanvasElement, trip: Trip, ordered: TripSpot[]) {
+/** 테마마다 사진을 붙일 자리, 제목 자리, 글자색, 테이프 색이 다르다. */
+interface SceneLayout {
+  gridX: number
+  gridY: number
+  gridW: number
+  gridH: number
+  titleX: number
+  titleY: number
+  titleColor: string
+  periodColor: string
+  metaColor: string
+  tapeColors: string[]
+}
+
+async function drawPamphlet(canvas: HTMLCanvasElement, input: CollageInput, ordered: TripSpot[]) {
   canvas.width = CANVAS_W
   canvas.height = CANVAS_H
 
@@ -642,22 +689,46 @@ async function drawPamphlet(canvas: HTMLCanvasElement, trip: Trip, ordered: Trip
     ]),
   ])
 
-  // 책상 위에 다이어리를 펼쳐놓은 장면.
-  drawWoodDesk(ctx, canvas.width, canvas.height)
-  drawOpenBook(ctx)
+  let scene: SceneLayout
+  if (input.theme === '노트') {
+    // 책상 위에 다이어리를 펼쳐놓은 장면.
+    drawWoodDesk(ctx, canvas.width, canvas.height)
+    drawOpenBook(ctx)
+    // 단풍잎 — 책상 위에 몇 장 떨어져 있는 정도로만. 소품을 늘어놓을수록 금방 조잡해진다.
+    drawMapleLeaf(ctx, DESK_MARGIN * 0.5, canvas.height * 0.28, 62, -32, '#d2703a', '#a4401f')
+    drawMapleLeaf(ctx, canvas.width - DESK_MARGIN * 0.45, canvas.height * 0.68, 68, 24, '#e0a33a', '#b26a1f')
+    scene = {
+      gridX: RIGHT_PAGE_X + PAGE_PAD,
+      gridY: DESK_MARGIN + TOP_PEEK,
+      gridW: RIGHT_PAGE_W - PAGE_PAD * 2,
+      gridH: GRID_H,
+      titleX: RIGHT_PAGE_X + PAGE_PAD + 4,
+      titleY: DESK_MARGIN + TOP_PEEK + GRID_H + TITLE_GAP + 40,
+      titleColor: '#a8592e',
+      periodColor: '#b97645',
+      metaColor: 'rgba(58, 55, 46, 0.72)',
+      tapeColors: ['rgba(226, 206, 168, 0.82)'],
+    }
+  } else {
+    drawPastelScene(ctx)
+    scene = {
+      gridX: PASTEL_PAD,
+      gridY: PASTEL_PAD - 10,
+      gridW: CANVAS_W - PASTEL_PAD * 2,
+      gridH: CANVAS_H - PASTEL_PAD - TITLE_BLOCK_H,
+      titleX: PASTEL_PAD + 4,
+      titleY: CANVAS_H - TITLE_BLOCK_H + 66,
+      titleColor: '#d4739b',
+      periodColor: '#8aa7d8',
+      metaColor: 'rgba(90, 84, 104, 0.72)',
+      // 파스텔 테마는 사진마다 다른 색 테이프를 붙인다.
+      tapeColors: ['rgba(246, 183, 207, 0.72)', 'rgba(174, 205, 240, 0.72)', 'rgba(250, 224, 160, 0.72)'],
+    }
+  }
 
-  // 모서리 소품들 — 나침반, 동전, 반짝임, 낙엽, 삐져나온 사진.
-  // 단풍잎 — 책상 위에 몇 장 떨어져 있는 정도로만. 소품을 늘어놓을수록 금방 조잡해진다.
-  drawMapleLeaf(ctx, DESK_MARGIN * 0.48, canvas.height * 0.3, 74, -32, '#d2703a', '#a4401f')
-  drawMapleLeaf(ctx, canvas.width - DESK_MARGIN * 0.42, canvas.height * 0.63, 82, 24, '#e0a33a', '#b26a1f')
-  drawMapleLeaf(ctx, canvas.width * 0.32, canvas.height - DESK_MARGIN * 0.42, 58, 14, '#c14f2c', '#8c2f1b')
-
-  // 폴라로이드들 — 오른쪽 페이지 그리드 영역에 스크랩북처럼 붙인다.
-  const gridX = RIGHT_PAGE_X + PAGE_PAD
-  const gridY = DESK_MARGIN + TOP_PEEK
-  const gridW = RIGHT_PAGE_W - PAGE_PAD * 2
-
-  const positions = clusterLayout(shown.length, gridX, gridY, gridW, GRID_H)
+  // 폴라로이드들 — 그리드 영역에 스크랩북처럼 붙인다.
+  const { gridX, gridY, gridW, gridH } = scene
+  const positions = collageLayout(shown.length, gridX, gridY, gridW, gridH)
   shown.forEach((p, i) => {
     const pos = positions[i]
     drawPolaroid(ctx, {
@@ -669,15 +740,16 @@ async function drawPamphlet(canvas: HTMLCanvasElement, trip: Trip, ordered: Trip
       color: p.verifiedColor ?? '#e9f2e4',
       title: p.title,
       caption: p.caption,
+      tapeColor: scene.tapeColors[i % scene.tapeColors.length],
     })
   })
 
   if (extra > 0) {
     // 남은 장수도 폴라로이드처럼 — 사진 대신 "+N장 더"라고 적힌 빈 카드 한 장.
-    const w = Math.min(gridW, GRID_H) * 0.24
+    const w = Math.min(gridW, gridH) * 0.24
     const h = w * 1.26
     const cx = gridX + gridW - w * 0.62
-    const cy = gridY + GRID_H - h * 0.62
+    const cy = gridY + gridH - h * 0.62
     ctx.save()
     ctx.translate(cx, cy)
     ctx.rotate((-5 * Math.PI) / 180)
@@ -699,37 +771,41 @@ async function drawPamphlet(canvas: HTMLCanvasElement, trip: Trip, ordered: Trip
     ctx.restore()
   }
 
-  // 제목 블록 — 오른쪽 페이지 왼쪽 아래에 손글씨로 적어둔 것처럼 왼쪽 정렬.
-  const titleX = gridX + 4
-  let titleY = gridY + GRID_H + TITLE_GAP + 40
+  // 제목 블록 — 왼쪽 아래에 손글씨로 적어둔 것처럼 왼쪽 정렬.
+  const titleX = scene.titleX
+  let titleY = scene.titleY
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
 
-  ctx.fillStyle = '#a8592e'
+  ctx.fillStyle = scene.titleColor
   let titleSize = 48
   ctx.font = `700 ${titleSize}px "${TITLE_FONT}", Pretendard, sans-serif`
-  while (ctx.measureText(trip.name).width > gridW && titleSize > 22) {
+  while (ctx.measureText(input.title).width > gridW && titleSize > 22) {
     titleSize -= 2
     ctx.font = `700 ${titleSize}px "${TITLE_FONT}", Pretendard, sans-serif`
   }
-  ctx.fillText(trip.name, titleX, titleY)
+  ctx.fillText(input.title, titleX, titleY)
 
-  titleY += 42
-  ctx.fillStyle = '#b97645'
+  titleY += 40
+  ctx.fillStyle = scene.periodColor
   ctx.font = `400 26px "${TITLE_FONT}", Pretendard, sans-serif`
-  ctx.fillText(`${trip.startDate} ~ ${trip.endDate}`, titleX, titleY)
+  ctx.fillText(input.period, titleX, titleY)
 
-  titleY += 36
-  ctx.fillStyle = 'rgba(58, 55, 46, 0.72)'
-  ctx.font = '500 18px Pretendard, sans-serif'
-  const photographers = Object.values(trip.members).join(', ') || '여행자'
-  ctx.fillText(`사진 : ${photographers}`, titleX + 2, titleY)
+  if (input.photographers) {
+    titleY += 34
+    ctx.fillStyle = scene.metaColor
+    ctx.font = '500 18px Pretendard, sans-serif'
+    ctx.fillText(`사진 : ${input.photographers}`, titleX + 2, titleY)
+  }
 }
 
-/** 인증한 사진들을 시간순으로 정렬해 캔버스에 그린다. 캔버스 ref·준비 상태를 함께 관리. */
-function useCollage(canvasRef: React.RefObject<HTMLCanvasElement | null>, trip: Trip, pieces: TripSpot[]) {
+/**
+ * 고른 사진들을 시간순으로 정렬해 캔버스에 그린다.
+ * 캔버스와 "다 그렸는지"를 돌려주므로, 저장 버튼은 다 그려진 뒤에 눌리게 할 수 있다.
+ */
+export function useCollage(canvasRef: React.RefObject<HTMLCanvasElement | null>, input: CollageInput) {
   const [ready, setReady] = useState(false)
-  const ordered = [...pieces].sort((a, b) => (a.verifiedAt ?? 0) - (b.verifiedAt ?? 0))
+  const ordered = [...input.pieces].sort((a, b) => (a.verifiedAt ?? 0) - (b.verifiedAt ?? 0))
   // effect 의존성 배열을 배열 참조가 아니라 실제 내용으로 비교하려고 문자열로 만든다.
   const piecesKey = ordered
     .map((p) => `${p.contentId}:${p.photo ?? ''}:${p.verifiedColor ?? ''}:${p.caption ?? ''}`)
@@ -740,43 +816,28 @@ function useCollage(canvasRef: React.RefObject<HTMLCanvasElement | null>, trip: 
     if (!canvas || ordered.length === 0) return
     let cancelled = false
     setReady(false)
-    void drawPamphlet(canvas, trip, ordered).then(() => {
+    void drawPamphlet(canvas, input, ordered).then(() => {
       if (!cancelled) setReady(true)
     })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trip.id, trip.name, trip.startDate, trip.endDate, piecesKey])
+  }, [input.title, input.period, input.photographers, input.theme, piecesKey])
 
   return { ready, hasPieces: ordered.length > 0 }
 }
 
-/** 앨범 목록 카드에 쓰는 작은 미리보기 — 다운로드 버튼 없이 캔버스만. */
-export function PamphletPreview({ trip, pieces }: { trip: Trip; pieces: TripSpot[] }) {
+/** 콜라주 한 장 — 캔버스와 저장 버튼. */
+export function Pamphlet({ input }: { input: CollageInput }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { hasPieces } = useCollage(canvasRef, trip, pieces)
-
-  if (!hasPieces) {
-    return <div className="pamphlet-preview pamphlet-preview--empty" aria-hidden="true" />
-  }
-  return (
-    <div className="pamphlet-preview">
-      <canvas ref={canvasRef} className="pamphlet-preview__canvas" />
-    </div>
-  )
-}
-
-/** 상세 화면의 큰 버전 — 다운로드까지 할 수 있다. */
-export function Pamphlet({ trip, pieces }: { trip: Trip; pieces: TripSpot[] }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { ready, hasPieces } = useCollage(canvasRef, trip, pieces)
+  const { ready, hasPieces } = useCollage(canvasRef, input)
 
   function download() {
     const canvas = canvasRef.current
     if (!canvas) return
     const a = document.createElement('a')
-    a.download = `${trip.name} 팜플렛.png`
+    a.download = `${input.title} 콜라주.png`
     a.href = canvas.toDataURL('image/png')
     a.click()
   }
@@ -792,8 +853,9 @@ export function Pamphlet({ trip, pieces }: { trip: Trip; pieces: TripSpot[] }) {
         className="btn-primary t-button pamphlet__download"
         disabled={!ready}
         onClick={download}
+        aria-label="콜라주 저장"
       >
-        사진으로 저장
+        <DownloadIcon />
       </button>
     </div>
   )
